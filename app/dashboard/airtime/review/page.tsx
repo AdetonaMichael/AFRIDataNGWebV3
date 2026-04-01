@@ -1,0 +1,572 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronLeft,
+  CreditCard,
+  Loader2,
+  Lock,
+  ShieldCheck,
+  Wallet,
+} from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
+
+import { Card } from '@/components/shared/Card';
+import { Button } from '@/components/shared/Button';
+import { Toast } from '@/components/shared/Toast';
+import { PINVerificationModal } from '@/components/shared/PINVerificationModal';
+import { paymentService } from '@/services/payment.service';
+import { useAuth } from '@/hooks/useAuth';
+import { useUIStore } from '@/store/ui.store';
+import { formatCurrency } from '@/utils/format.utils';
+
+interface FormData {
+  provider: string;
+  providerName: string;
+  phone: string;
+  amount: string;
+}
+
+type TransactionStatus = 'idle' | 'processing' | 'success' | 'error';
+type PaymentMethod = 'wallet' | 'card' | 'bank_transfer';
+
+export default function AirtimeReviewPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const { addToast } = useUIStore();
+
+  const [formData, setFormData] = useState<FormData | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('wallet');
+  const [showPINModal, setShowPINModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [transactionStatus, setTransactionStatus] =
+    useState<TransactionStatus>('idle');
+  const [transactionId, setTransactionId] = useState('');
+
+  useEffect(() => {
+    console.log('[AirtimeReview] Page mounted, checking for form data...');
+    const savedData = sessionStorage.getItem('airtimeFormData');
+    console.log('[AirtimeReview] Saved data from sessionStorage:', savedData);
+
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData) as FormData;
+        console.log('[AirtimeReview] Parsed data:', parsedData);
+        setFormData(parsedData);
+      } catch (err) {
+        console.error('[AirtimeReview] Error parsing saved data:', err);
+        router.push('/dashboard/airtime');
+      }
+    } else {
+      console.warn('[AirtimeReview] No form data found, redirecting to airtime page');
+      router.push('/dashboard/airtime');
+    }
+  }, [router]);
+
+  const amount = useMemo(() => Number(formData?.amount || 0), [formData]);
+  const convenienceFee = useMemo(() => Math.ceil(amount * 0.015), [amount]);
+  const totalAmount = amount + convenienceFee;
+
+  const handleBack = () => {
+    router.push('/dashboard/airtime');
+  };
+
+  const handleConfirmPayment = () => {
+    console.log('[AirtimeReview] Confirm payment clicked');
+    if (!formData || isProcessing) {
+      console.warn('[AirtimeReview] Cannot confirm: formData exists:', !!formData, 'isProcessing:', isProcessing);
+      return;
+    }
+    console.log('[AirtimeReview] Opening PIN modal');
+    setShowPINModal(true);
+  };
+
+  const handleVerifyPIN = async (pin: string) => {
+    console.log('[AirtimeReview] PIN verification started');
+    if (!formData || !user) {
+      console.warn('[AirtimeReview] Missing formData or user');
+      return;
+    }
+    if (!pin) {
+      console.warn('[AirtimeReview] No PIN provided');
+      return;
+    }
+
+    setIsProcessing(true);
+    setTransactionStatus('processing');
+
+    try {
+      const now = new Date();
+      const requestId = `${now.getFullYear()}${String(
+        now.getMonth() + 1
+      ).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${Date.now()}${uuidv4().slice(0, 8)}`;
+
+      const airtimePayload = {
+        provider: formData.provider,
+        phone_number: formData.phone.replace(/\s/g, ''),
+        amount: parseInt(formData.amount),
+        user_id: user?.id?.toString(),
+        payment_method: paymentMethod as 'wallet' | 'card' | 'mobile_money',
+        request_id: requestId,
+      };
+
+      console.log('[AirtimeReview] Airtime purchase request prepared:', airtimePayload);
+      
+      // Small delay for UX
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      console.log('[AirtimeReview] Calling paymentService.purchaseAirtime()...');
+      const response = await paymentService.purchaseAirtime(airtimePayload);
+      console.log('[AirtimeReview] Purchase response received:', response);
+
+      if (response.success && response.data) {
+        // Now confirm with PIN if needed
+        console.log('[AirtimeReview] Confirming purchase with PIN...');
+        const confirmResponse = await paymentService.confirmAirtimePurchase(
+          requestId,
+          { pin, request_id: requestId }
+        );
+        
+        console.log('[AirtimeReview] PIN confirmation response:', confirmResponse);
+
+        if (confirmResponse.success) {
+          setTransactionId(confirmResponse.data?.id || requestId);
+          setTransactionStatus('success');
+          setShowPINModal(false);
+
+          sessionStorage.removeItem('airtimeFormData');
+
+          addToast({
+            message: 'Airtime purchased successfully!',
+            type: 'success',
+          });
+
+          console.log('[AirtimeReview] Transaction successful, redirecting in 3 seconds...');
+          setTimeout(() => {
+            router.push('/dashboard/history');
+          }, 2500);
+        } else {
+          console.warn('[AirtimeReview] PIN confirmation failed:', confirmResponse);
+          setTransactionStatus('error');
+          addToast({
+            message: confirmResponse.message || 'PIN verification failed. Please try again.',
+            type: 'error',
+          });
+        }
+      } else {
+        console.warn('[AirtimeReview] Purchase failed - unexpected response:', response);
+        setTransactionStatus('error');
+        addToast({
+          message: response.message || 'Transaction failed. Please try again.',
+          type: 'error',
+        });
+      }
+    } catch (error: any) {
+      console.error('[AirtimeReview] Payment error:', error);
+      
+      // Handle idempotency errors
+      if (error.isDuplicateError) {
+        addToast({
+          message: 'This airtime purchase has already been processed. Please check your history.',
+          type: 'info',
+        });
+      } else if (error.isIdempotencyError) {
+        addToast({
+          message: 'Payment system error. Please try again.',
+          type: 'error',
+        });
+      } else {
+        const message =
+          error.message ||
+          (typeof error === 'object' &&
+          error !== null &&
+          'response' in error &&
+          typeof (error as { response?: { data?: { message?: string } } }).response
+            ?.data?.message === 'string'
+            ? (error as { response?: { data?: { message?: string } } }).response!
+                .data!.message!
+            : 'Failed to process payment. Please try again.');
+
+        addToast({
+          message,
+          type: 'error',
+        });
+      }
+
+      setTransactionStatus('error');
+    } finally {
+      console.log('[AirtimeReview] PIN verification completed, processing state:', isProcessing);
+      setIsProcessing(false);
+    }
+  };
+
+  if (!formData) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef2ff]">
+            <Loader2 className="animate-spin text-[#4a5ff7]" size={26} />
+          </div>
+          <p className="text-sm font-medium text-[#6b7280]">Loading review...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      className="space-y-8"
+    >
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        * {
+          font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+      `}</style>
+
+      <section className="relative overflow-hidden rounded-[30px] border border-[#e5e7eb] bg-[#0b1220] px-6 py-8 sm:px-8 sm:py-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(74,95,247,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.06),transparent_24%)]" />
+
+        <div className="relative z-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-2xl">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-[#cbd5e1] transition hover:text-white"
+            >
+              <ChevronLeft size={16} />
+              Back to airtime
+            </button>
+
+            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#c7d2fe]">
+              Transaction Review
+            </span>
+
+            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+              Confirm your airtime purchase
+            </h1>
+
+            <p className="mt-3 max-w-xl text-sm leading-7 text-[#cbd5e1] sm:text-base">
+              Review the transaction details carefully before proceeding to secure
+              payment authorization.
+            </p>
+          </div>
+
+          <div className="grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
+                Provider
+              </p>
+              <p className="mt-3 text-lg font-bold text-white">
+                {formData.providerName.split(' ')[0]}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
+                Amount
+              </p>
+              <p className="mt-3 text-lg font-bold text-white">
+                {formatCurrency(amount)}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
+                Total
+              </p>
+              <p className="mt-3 text-lg font-bold text-white">
+                {formatCurrency(totalAmount)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_360px]">
+        <div className="space-y-6">
+          <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-8 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-8 flex items-center gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#4a5ff7] bg-white text-sm font-bold text-[#4a5ff7]">
+                  ✓
+                </div>
+                <span className="text-sm font-semibold text-[#111827]">
+                  Select Provider & Amount
+                </span>
+              </div>
+              <div className="h-[2px] flex-1 bg-[#4a5ff7]" />
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4a5ff7] text-sm font-bold text-white">
+                  2
+                </div>
+                <span className="text-sm font-semibold text-[#111827]">
+                  Confirm & Pay
+                </span>
+              </div>
+            </div>
+
+            <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
+              Service Details
+            </h2>
+
+            <div className="mt-6 space-y-4">
+              <div className="flex items-center justify-between rounded-2xl bg-[#f8fafc] px-4 py-4">
+                <span className="text-sm text-[#6b7280]">Network Provider</span>
+                <span className="text-sm font-semibold text-[#111827]">
+                  {formData.providerName}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between rounded-2xl bg-[#f8fafc] px-4 py-4">
+                <span className="text-sm text-[#6b7280]">Phone Number</span>
+                <span className="text-sm font-semibold text-[#111827]">
+                  {formData.phone}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between rounded-2xl bg-[#f8fafc] px-4 py-4">
+                <span className="text-sm text-[#6b7280]">Airtime Amount</span>
+                <span className="text-sm font-semibold text-[#111827]">
+                  {formatCurrency(amount)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between rounded-2xl bg-[#f8fafc] px-4 py-4">
+                <span className="text-sm text-[#6b7280]">Convenience Fee</span>
+                <span className="text-sm font-semibold text-[#111827]">
+                  {formatCurrency(convenienceFee)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between rounded-[22px] border border-[#dbe4ff] bg-[#f7f8ff] px-5 py-5">
+                <span className="text-base font-semibold text-[#111827]">
+                  Total Amount
+                </span>
+                <span className="text-2xl font-extrabold tracking-tight text-[#4a5ff7]">
+                  {formatCurrency(totalAmount)}
+                </span>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-8 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
+              Payment Method
+            </h2>
+
+            <div className="mt-6 space-y-4">
+              {[
+                {
+                  value: 'wallet',
+                  label: 'Wallet',
+                  description: 'Fastest option for instant checkout.',
+                  icon: Wallet,
+                },
+                {
+                  value: 'card',
+                  label: 'Debit Card',
+                  description: 'Pay directly with your linked card.',
+                  icon: CreditCard,
+                },
+                {
+                  value: 'bank_transfer',
+                  label: 'Bank Transfer',
+                  description: 'Use a transfer flow where supported.',
+                  icon: ShieldCheck,
+                },
+              ].map((method) => {
+                const Icon = method.icon;
+                const active = paymentMethod === method.value;
+
+                return (
+                  <button
+                    key={method.value}
+                    type="button"
+                    onClick={() => setPaymentMethod(method.value as PaymentMethod)}
+                    className={`flex w-full items-start justify-between rounded-[22px] border p-4 text-left transition ${
+                      active
+                        ? 'border-[#4a5ff7] bg-[#f7f8ff]'
+                        : 'border-[#e5e7eb] bg-white hover:border-[#cfd8ff]'
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div
+                        className={`rounded-2xl p-3 ${
+                          active ? 'bg-[#4a5ff7]' : 'bg-[#eef2ff]'
+                        }`}
+                      >
+                        <Icon
+                          className={`h-5 w-5 ${
+                            active ? 'text-white' : 'text-[#4a5ff7]'
+                          }`}
+                        />
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-bold text-[#111827]">
+                          {method.label}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-[#6b7280]">
+                          {method.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`mt-1 h-5 w-5 rounded-full border-2 ${
+                        active
+                          ? 'border-[#4a5ff7] bg-[#4a5ff7]'
+                          : 'border-[#d1d5db] bg-white'
+                      }`}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 rounded-[22px] border border-[#dbeafe] bg-[#eff6ff] p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 text-[#2563eb]" />
+                <p className="text-sm leading-6 text-[#1e3a8a]">
+                  You will be asked to verify this transaction with your 4-digit PIN
+                  before payment is processed.
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="rounded-[28px] border border-[#dbe4ff] bg-[#f8faff] p-6 shadow-[0_10px_35px_rgba(74,95,247,0.06)]">
+            <div className="flex gap-4">
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-[#4a5ff7]">
+                <Lock className="text-white" size={20} />
+              </div>
+
+              <div>
+                <h3 className="text-base font-bold text-[#111827]">
+                  Secure payment authorization
+                </h3>
+                <p className="mt-1 text-sm leading-6 text-[#6b7280]">
+                  Your transaction is protected by encrypted request handling and PIN
+                  verification before final processing.
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div>
+          <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] xl:sticky xl:top-8">
+            <h3 className="text-lg font-bold tracking-tight text-[#111827]">
+              Order Summary
+            </h3>
+
+            <div className="mt-5 space-y-4 border-b border-[#eef2f7] pb-5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#6b7280]">Provider</span>
+                <span className="font-semibold text-[#111827]">
+                  {formData.providerName.split(' ')[0]}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#6b7280]">Phone</span>
+                <span className="font-semibold text-[#111827]">{formData.phone}</span>
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#6b7280]">Amount</span>
+                <span className="font-semibold text-[#111827]">
+                  {formatCurrency(amount)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#6b7280]">Fee</span>
+                <span className="font-semibold text-[#111827]">
+                  {formatCurrency(convenienceFee)}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-5 mb-6 flex items-center justify-between">
+              <span className="text-base font-semibold text-[#111827]">Total</span>
+              <span className="text-2xl font-extrabold tracking-tight text-[#4a5ff7]">
+                {formatCurrency(totalAmount)}
+              </span>
+            </div>
+
+            {transactionStatus === 'success' ? (
+              <div className="mb-6 rounded-[22px] border border-green-200 bg-green-50 p-4 text-center">
+                <CheckCircle2 className="mx-auto mb-2 text-green-600" size={24} />
+                <p className="text-sm font-semibold text-green-900">
+                  Transaction Successful
+                </p>
+                <p className="mt-1 break-all text-xs text-green-700">
+                  ID: {transactionId}
+                </p>
+              </div>
+            ) : null}
+
+            {transactionStatus === 'error' ? (
+              <div className="mb-6 rounded-[22px] border border-red-200 bg-red-50 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="mt-0.5 text-red-600" size={20} />
+                  <div>
+                    <p className="text-sm font-semibold text-red-900">
+                      Transaction failed
+                    </p>
+                    <p className="mt-1 text-xs text-red-700">
+                      Please review your balance or try again.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {transactionStatus !== 'success' ? (
+              <Button
+                fullWidth
+                onClick={handleConfirmPayment}
+                disabled={isProcessing}
+                className="mb-3 h-12 rounded-xl bg-[#4a5ff7] text-base font-semibold text-white hover:bg-[#3b4fe0]"
+              >
+                {isProcessing ? 'Processing...' : 'Confirm & Pay'}
+              </Button>
+            ) : null}
+
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={handleBack}
+              disabled={isProcessing}
+              className="h-12 rounded-xl"
+            >
+              Cancel
+            </Button>
+
+            <p className="mt-4 text-center text-xs text-[#6b7280]">
+              <Lock className="mr-1 inline" size={12} />
+              Secured by AFRIDataNG
+            </p>
+          </Card>
+        </div>
+      </div>
+
+      <PINVerificationModal
+        isOpen={showPINModal}
+        onClose={() => setShowPINModal(false)}
+        onVerify={handleVerifyPIN}
+        isLoading={isProcessing}
+        title="Verify Transaction"
+        description="Enter your 4-digit PIN to complete this purchase"
+      />
+
+      <Toast />
+    </div>
+  );
+}

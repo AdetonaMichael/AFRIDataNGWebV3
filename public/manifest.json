@@ -1,0 +1,71 @@
+{
+  "name": "AFRIDataNG - Virtual Top-up Platform",
+  "short_name": "AFRIDataNG",
+  "description": "Buy airtime, data bundles, pay bills, and send money instantly with AFRIDataNG. The fastest and most reliable telecom service provider in Africa.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#003366",
+  "categories": ["finance", "productivity"],
+  "screenshots": [
+    {
+      "src": "/afribanner1.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Buy Airtime",
+      "short_name": "Airtime",
+      "description": "Quick airtime purchase",
+      "url": "/dashboard/airtime",
+      "icons": [{ "src": "/icon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Buy Data",
+      "short_name": "Data",
+      "description": "Quick data bundle purchase",
+      "url": "/dashboard/data",
+      "icons": [{ "src": "/icon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Pay Bills",
+      "short_name": "Bills",
+      "description": "Quick bill payment",
+      "url": "/dashboard/bills",
+      "icons": [{ "src": "/icon.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false,
+  "screenshots_2": "Chrome on Android would only show one screenshot at a time"
+}

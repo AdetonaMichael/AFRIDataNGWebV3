@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /agent
+Disallow: /auth
+Disallow: /*.json$
+Disallow: /*.pdf$
+Crawl-delay: 1
+Request-rate: 1/1s
+
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /agent
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+Disallow: /agent
+Crawl-delay: 1
+
+Sitemap: https://afridatawebv3.com/sitemap.xml
