@@ -10,6 +10,9 @@ export interface ApiResponse<T = any> {
   data?: T;
   error_code?: string;
   errors?: Record<string, string[]>;
+  // VTU API specific fields
+  content?: T;
+  response_description?: string;
 }
 
 export interface PaginationMeta {
@@ -109,9 +112,14 @@ export interface ForgotPasswordRequest {
   email: string;
 }
 
+export interface VerifyPasswordResetOtpRequest {
+  email: string;
+  otp: string;
+}
+
 export interface ResetPasswordRequest {
   email: string;
-  token: string;
+  reset_token: string;
   password: string;
   password_confirmation: string;
 }

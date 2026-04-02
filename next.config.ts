@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'vtpass.com',
+      },
+      {
+        protocol: 'https',
         hostname: '**.vtpass.com',
       },
       {

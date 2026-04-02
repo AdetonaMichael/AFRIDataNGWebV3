@@ -12,6 +12,12 @@ export interface VTUProvider {
   convinience_fee: string;
   product_type: string;
   image?: string;
+  biller_code?: string;
+  biller_id?: string;
+  image_url?: string;
+  ported?: boolean;
+  inter_switch_code?: string;
+  inter_switch_id?: string;
 }
 
 export interface VTUVariation {

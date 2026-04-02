@@ -15,7 +15,16 @@ class VTUService {
   async getServices(): Promise<VTUServiceType[] | null> {
     try {
       const response = await apiClient.get<any>('/vtu/services');
-      return response.data || null;
+      
+      // Check for content property first, then fall back to data
+      let services = response?.content || response?.data || null;
+      
+      // Check if data is nested
+      if (services && typeof services === 'object' && !Array.isArray(services) && 'data' in services) {
+        services = services.data;
+      }
+      
+      return services;
     } catch (error) {
       throw error;
     }
@@ -31,21 +40,39 @@ class VTUService {
       const endpoint = `/vtu/service/${serviceId}`;
       const response = await apiClient.get<any>(endpoint);
       
-      console.log('[VTUService] API Response received:', {
-        success: response?.success,
-        hasData: !!response?.data,
+      console.log('[VTUService] ===== RAW RESPONSE DEBUG =====');
+      console.log('[VTUService] Full response object:', response);
+      console.log('[VTUService] Response type:', typeof response);
+      console.log('[VTUService] Response keys:', Object.keys(response || {}));
+      console.log('[VTUService] response.content:', response?.content);
+      console.log('[VTUService] response.data:', response?.data);
+      console.log('[VTUService] response.success:', response?.success);
+      console.log('[VTUService] response.message:', response?.message);
+      console.log('[VTUService] response.response_description:', response?.response_description);
+      console.log('[VTUService] JSON stringify:', JSON.stringify(response));
+      
+      // API returns: { response_description: "000", content: [...] }
+      // The apiClient.get() returns res.data which is the API response body
+      let providers: any = response?.content || response?.data;
+      
+      console.log('[VTUService] After first check - providers:', {
+        isArray: Array.isArray(providers),
+        value: providers,
       });
       
-      // apiClient.get() already extracts res.data
-      // API returns: { success: true, data: [...] }
-      const providers = response?.data || null;
+      // Check if data is nested (some endpoints might wrap it further)
+      if (providers && typeof providers === 'object' && !Array.isArray(providers) && 'data' in providers) {
+        console.log('[VTUService] Detected nested response structure, extracting nested data');
+        providers = providers.data;
+      }
       
-      console.log('[VTUService] Providers extracted:', {
+      console.log('[VTUService] Final providers check:', {
         isArray: Array.isArray(providers),
         count: Array.isArray(providers) ? providers.length : 0,
+        providers: Array.isArray(providers) ? providers.slice(0, 1) : 'NOT_ARRAY',
       });
       
-      return providers;
+      return Array.isArray(providers) ? providers : null;
     } catch (error) {
       console.error('[VTUService] Error fetching providers:', error);
       throw error;
@@ -64,9 +91,15 @@ class VTUService {
       );
       console.log('[VTUService] Variations response:', response);
       
-      // API returns data in response.data property
-      // apiClient.get() returns ApiResponse which contains data property
-      const variations = response?.data || null;
+      // Check for content property first, then fall back to data
+      let variations = response?.content || response?.data || null;
+      
+      // Check if data is nested
+      if (variations && typeof variations === 'object' && !Array.isArray(variations) && 'data' in variations) {
+        console.log('[VTUService] Detected nested response structure for variations, extracting nested data');
+        variations = variations.data;
+      }
+      
       console.log('[VTUService] Variations extracted:', variations);
       return variations;
     } catch (error) {
@@ -88,9 +121,15 @@ class VTUService {
       );
       console.log('[VTUService] Payment response:', response);
       
-      // API returns data in response.data property
-      // apiClient.post() returns ApiResponse which contains data property
-      const result = response?.data || null;
+      // Check for content property first, then fall back to data
+      let result = response?.content || response?.data || null;
+      
+      // Check if data is nested
+      if (result && typeof result === 'object' && !Array.isArray(result) && 'data' in result) {
+        console.log('[VTUService] Detected nested response structure for payment, extracting nested data');
+        result = result.data;
+      }
+      
       console.log('[VTUService] Payment result extracted:', result);
       return result;
     } catch (error) {
@@ -144,6 +183,103 @@ class VTUService {
    */
   async getAirtimeVariations(providerCode: string): Promise<VTUVariationResponse | null> {
     return this.getVariations(`${providerCode}-airtime`);
+  }
+
+  /**
+   * Get all data providers
+   * Convenience method for data purchase flow
+   */
+  async getDataProviders(): Promise<VTUProvider[] | null> {
+    console.log('[VTUService] ╔════════════════════════════════════════════════════════╗');
+    console.log('[VTUService] ║ getDataProviders() ENTRY POINT                        ║');
+    console.log('[VTUService] ╚════════════════════════════════════════════════════════╝');
+    try {
+      console.log('[VTUService] Calling getServiceProviders("data")...');
+      const result = await this.getServiceProviders('data');
+      
+      console.log('[VTUService] ╔════════════════════════════════════════════════════════╗');
+      console.log('[VTUService] ║ getDataProviders() FINAL CHECK                        ║');
+      console.log('[VTUService] ╚════════════════════════════════════════════════════════╝');
+      console.log('[VTUService] Result:', {
+        isArray: Array.isArray(result),
+        count: Array.isArray(result) ? result.length : 0,
+        sample: Array.isArray(result) ? result[0] : null,
+      });
+      
+      return result;
+    } catch (error) {
+      console.error('[VTUService] ❌ getDataProviders() EXCEPTION:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get variations (plans) for a data provider
+   * @param serviceId - Service ID (e.g., 'airtel-data', 'mtn-data')
+   */
+  async getDataVariations(serviceId: string): Promise<VTUVariationResponse | null> {
+    console.log('[VTUService] Fetching data variations for:', serviceId);
+    return this.getVariations(serviceId);
+  }
+
+  /**
+   * Get all electricity providers
+   * Convenience method for electricity bill payment flow
+   */
+  async getElectricityProviders(): Promise<VTUProvider[] | null> {
+    console.log('[VTUService] Fetching electricity providers...');
+    try {
+      const result = await this.getServiceProviders('electricity-bill');
+      console.log('[VTUService] Electricity providers loaded:', {
+        isArray: Array.isArray(result),
+        count: Array.isArray(result) ? result.length : 0,
+      });
+      return result;
+    } catch (error) {
+      console.error('[VTUService] Error fetching electricity providers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get variations (prepaid/postpaid) for an electricity provider
+   * @param serviceId - Service ID (e.g., 'ikeja-electric')
+   */
+  async getElectricityVariations(serviceId: string): Promise<VTUVariationResponse | null> {
+    console.log('[VTUService] Fetching electricity variations for:', serviceId);
+    return this.getVariations(serviceId);
+  }
+
+  /**
+   * Verify meter number for electricity bill payment
+   * @param billersCode - Electricity provider biller code
+   * @param meterNumber - Customer's meter number
+   * @param serviceID - Electricity provider service ID
+   */
+  async verifyMeterNumber(
+    billersCode: string,
+    meterNumber: string,
+    serviceID: string
+  ): Promise<any> {
+    try {
+      console.log('[VTUService] Verifying meter number:', {
+        billersCode,
+        meterNumber,
+        serviceID,
+      });
+
+      const response = await apiClient.post('/vtu/merchant-verify', {
+        billersCode,
+        serviceID: serviceID,
+        Meter_Number: meterNumber,
+      });
+
+      console.log('[VTUService] Meter verification response:', response);
+      return response;
+    } catch (error) {
+      console.error('[VTUService] Meter verification failed:', error);
+      throw error;
+    }
   }
 }
 

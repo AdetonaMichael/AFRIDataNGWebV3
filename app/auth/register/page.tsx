@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { Card } from '@/components/shared/Card';
+import { AuthProtected } from '@/components/AuthProtected';
 import { registerSchema, type RegisterSchema } from '@/utils/validation.utils';
 import Image from 'next/image';
 import { icon } from '../../../public';
@@ -251,7 +252,7 @@ function PasswordInput({
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function RegisterPage() {
+function RegisterPageContent() {
   const { register: registerUser, isLoading } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -497,5 +498,13 @@ export default function RegisterPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <AuthProtected requireAuth={false}>
+      <RegisterPageContent />
+    </AuthProtected>
   );
 }

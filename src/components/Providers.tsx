@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Toast } from '@/components/shared/Toast';
+import { AuthInitializer } from '@/components/AuthInitializer';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -9,9 +10,11 @@ interface ProvidersProps {
 
 export const Providers: React.FC<ProvidersProps> = ({ children }) => {
   return (
-    <>
-      {children}
-      <Toast />
-    </>
+    <AuthInitializer>
+      <>
+        {children}
+        <Toast />
+      </>
+    </AuthInitializer>
   );
 };

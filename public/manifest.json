@@ -66,6 +66,5 @@
       "icons": [{ "src": "/icon.png", "sizes": "192x192" }]
     }
   ],
-  "prefer_related_applications": false,
-  "screenshots_2": "Chrome on Android would only show one screenshot at a time"
+  "prefer_related_applications": false
 }

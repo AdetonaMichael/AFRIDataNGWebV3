@@ -3,6 +3,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Lock, X } from 'lucide-react';
 import { Button } from './Button';
+import { icon } from '../../../public';
+import Image from 'next/image';
 
 interface PINVerificationModalProps {
   isOpen: boolean;
@@ -89,9 +91,7 @@ export const PINVerificationModal: React.FC<PINVerificationModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-[#a9b7ff] to-[#6b7bd6] p-3 rounded-xl">
-              <Lock className="text-white" size={28} />
-            </div>
+              <Image src={icon} alt="AFRIDataNG Logo" width={32} height={32}/>
             <div>
               <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
             </div>

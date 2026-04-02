@@ -10,11 +10,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { Card } from '@/components/shared/Card';
+import { AuthProtected } from '@/components/AuthProtected';
 import { loginSchema, type LoginSchema } from '@/utils/validation.utils';
 import Image from 'next/image';
 import { icon } from '../../../public';
 
-export default function LoginPage() {
+function LoginPageContent() {
   const { login, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -98,12 +99,12 @@ export default function LoginPage() {
         <section className="flex items-center justify-center px-4 py-8 sm:px-6 lg:px-10 bg-[#fafafa]">
           <div className="w-full max-w-md">
             <div className="mb-8 lg:hidden">
-              <Link href="/" className="inline-flex items-center gap-2">
-                <div className="w-8 h-8 bg-[#4a5ff7] rounded-md flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-bold text-white">A</span>
-                </div>
-                <span className="text-lg font-bold tracking-tight text-[#0a0a0a]">AFRIDataNG</span>
-              </Link>
+                 <div className="mb-8 lg:hidden flex justify-center text-center">
+                              <Link href="/" className="inline-flex items-center gap-2">
+                                <Image src={icon} alt="AFRIDataNG Logo" width={32} height={32} />
+                                <span className="text-lg font-bold tracking-tight text-[#0a0a0a]">AFRIDataNG</span>
+                              </Link>
+                            </div>
             </div>
 
             <Card className="w-full border border-gray-200 shadow-[0_10px_40px_rgba(0,0,0,0.06)] rounded-2xl bg-white p-6 sm:p-8">
@@ -205,5 +206,13 @@ export default function LoginPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <AuthProtected requireAuth={false}>
+      <LoginPageContent />
+    </AuthProtected>
   );
 }

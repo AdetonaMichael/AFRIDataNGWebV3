@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
@@ -11,11 +11,13 @@ import {
   Lock,
   ShieldCheck,
   Wallet,
+  Wifi,
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
+import { Input } from '@/components/shared/Input';
 import { Toast } from '@/components/shared/Toast';
 import { PINVerificationModal } from '@/components/shared/PINVerificationModal';
 import { paymentService } from '@/services/payment.service';
@@ -26,19 +28,23 @@ import { formatCurrency } from '@/utils/format.utils';
 interface FormData {
   provider: string;
   providerName: string;
-  phone: string;
-  amount: string;
+  variation?: string;
+  variationCode?: string;
+  variationName?: string;
+  variationAmount?: string;
 }
 
 type TransactionStatus = 'idle' | 'processing' | 'success' | 'error';
 type PaymentMethod = 'wallet' | 'card' | 'bank_transfer';
 
-export default function AirtimeReviewPage() {
+export default function DataReviewPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { addToast } = useUIStore();
 
   const [formData, setFormData] = useState<FormData | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('wallet');
   const [showPINModal, setShowPINModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -47,51 +53,68 @@ export default function AirtimeReviewPage() {
   const [transactionId, setTransactionId] = useState('');
 
   useEffect(() => {
-    console.log('[AirtimeReview] Page mounted, checking for form data...');
-    const savedData = sessionStorage.getItem('airtimeFormData');
-    console.log('[AirtimeReview] Saved data from sessionStorage:', savedData);
+    console.log('[DataReview] Page mounted, checking for form data...');
+    const savedData = sessionStorage.getItem('dataFormData');
+    console.log('[DataReview] Saved data from sessionStorage:', savedData);
 
     if (savedData) {
       try {
         const parsedData = JSON.parse(savedData) as FormData;
-        console.log('[AirtimeReview] Parsed data:', parsedData);
+        console.log('[DataReview] Parsed data:', parsedData);
         setFormData(parsedData);
       } catch (err) {
-        console.error('[AirtimeReview] Error parsing saved data:', err);
-        router.push('/dashboard/airtime');
+        console.error('[DataReview] Error parsing saved data:', err);
+        router.push('/dashboard/data');
       }
     } else {
-      console.warn('[AirtimeReview] No form data found, redirecting to airtime page');
-      router.push('/dashboard/airtime');
+      console.warn('[DataReview] No form data found, redirecting to data page');
+      router.push('/dashboard/data');
     }
   }, [router]);
 
-  const amount = useMemo(() => Number(formData?.amount || 0), [formData]);
-  const convenienceFee = useMemo(() => Math.ceil(amount * 0.015), [amount]);
-  const totalAmount = amount + convenienceFee;
+  const amount = parseInt(formData?.variationAmount || '0');
 
   const handleBack = () => {
-    router.push('/dashboard/airtime');
+    router.push('/dashboard/data');
+  };
+
+  const validatePhoneNumber = (): boolean => {
+    const phone = phoneNumber.replace(/\s/g, '');
+    if (!phone) {
+      setPhoneError('Phone number is required');
+      return false;
+    }
+    if (!/^0[789]\d{9}$/.test(phone)) {
+      setPhoneError('Please enter a valid Nigerian phone number');
+      return false;
+    }
+    setPhoneError('');
+    return true;
   };
 
   const handleConfirmPayment = () => {
-    console.log('[AirtimeReview] Confirm payment clicked');
+    console.log('[DataReview] Confirm payment clicked');
     if (!formData || isProcessing) {
-      console.warn('[AirtimeReview] Cannot confirm: formData exists:', !!formData, 'isProcessing:', isProcessing);
+      console.warn('[DataReview] Cannot confirm: formData exists:', !!formData, 'isProcessing:', isProcessing);
       return;
     }
-    console.log('[AirtimeReview] Opening PIN modal');
+    
+    if (!validatePhoneNumber()) {
+      return;
+    }
+    
+    console.log('[DataReview] Opening PIN modal');
     setShowPINModal(true);
   };
 
   const handleVerifyPIN = async (pin: string) => {
-    console.log('[AirtimeReview] PIN verification started');
+    console.log('[DataReview] PIN verification started');
     if (!formData || !user) {
-      console.warn('[AirtimeReview] Missing formData or user');
+      console.warn('[DataReview] Missing formData or user');
       return;
     }
     if (!pin) {
-      console.warn('[AirtimeReview] No PIN provided');
+      console.warn('[DataReview] No PIN provided');
       return;
     }
 
@@ -104,52 +127,53 @@ export default function AirtimeReviewPage() {
         now.getMonth() + 1
       ).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${Date.now()}${uuidv4().slice(0, 8)}`;
 
-      const airtimePayload = {
-        provider: formData.provider,
-        phone_number: formData.phone.replace(/\s/g, ''),
-        amount: parseInt(formData.amount),
+      const dataPayload = {
+        service_id: formData.provider,
+        variation_code: formData.variationCode,
+        amount: parseInt(formData.variationAmount || '0'),
+        phone_number: phoneNumber.replace(/\s/g, ''),
         user_id: user?.id?.toString(),
         payment_method: paymentMethod as 'wallet' | 'card' | 'mobile_money',
         request_id: requestId,
       };
 
-      console.log('[AirtimeReview] Airtime purchase request prepared:', airtimePayload);
-      
+      console.log('[DataReview] Data purchase request prepared:', dataPayload);
+
       // Small delay for UX
       await new Promise((resolve) => setTimeout(resolve, 1200));
 
-      console.log('[AirtimeReview] Calling paymentService.purchaseAirtime()...');
-      const response = await paymentService.purchaseAirtime(airtimePayload);
-      console.log('[AirtimeReview] Purchase response received:', response);
+      console.log('[DataReview] Calling paymentService.purchaseData()...');
+      const response = await paymentService.purchaseData(dataPayload);
+      console.log('[DataReview] Purchase response received:', response);
 
       if (response.success && response.data) {
         // Now confirm with PIN if needed
-        console.log('[AirtimeReview] Confirming purchase with PIN...');
-        const confirmResponse = await paymentService.confirmAirtimePurchase(
+        console.log('[DataReview] Confirming purchase with PIN...');
+        const confirmResponse = await paymentService.confirmDataPurchase(
           requestId,
           { pin, request_id: requestId }
         );
-        
-        console.log('[AirtimeReview] PIN confirmation response:', confirmResponse);
+
+        console.log('[DataReview] PIN confirmation response:', confirmResponse);
 
         if (confirmResponse.success) {
           setTransactionId(confirmResponse.data?.id || requestId);
           setTransactionStatus('success');
           setShowPINModal(false);
 
-          sessionStorage.removeItem('airtimeFormData');
+          sessionStorage.removeItem('dataFormData');
 
           addToast({
-            message: 'Airtime purchased successfully!',
+            message: 'Data purchased successfully!',
             type: 'success',
           });
 
-          console.log('[AirtimeReview] Transaction successful, redirecting in 3 seconds...');
+          console.log('[DataReview] Transaction successful, redirecting in 3 seconds...');
           setTimeout(() => {
             router.push('/dashboard/history');
           }, 2500);
         } else {
-          console.warn('[AirtimeReview] PIN confirmation failed:', confirmResponse);
+          console.warn('[DataReview] PIN confirmation failed:', confirmResponse);
           setTransactionStatus('error');
           addToast({
             message: confirmResponse.message || 'PIN verification failed. Please try again.',
@@ -157,13 +181,13 @@ export default function AirtimeReviewPage() {
           });
         }
       } else {
-        console.warn('[AirtimeReview] Purchase failed - unexpected response:', response);
+        console.warn('[DataReview] Purchase failed - unexpected response:', response);
         setShowPINModal(false);
         setTransactionStatus('error');
         
         // Handle specific error codes
         if (response.error_code === 'INSUFFICIENT_USER_BALANCE') {
-          console.warn('[AirtimeReview] Insufficient wallet balance detected');
+          console.warn('[DataReview] Insufficient wallet balance detected');
           const balanceData = response.data as any;
           addToast({
             message: `Insufficient wallet balance. You need ₦${balanceData?.required_amount}, but your balance is ₦${balanceData?.current_balance}. Please top up your wallet and try again.`,
@@ -177,12 +201,12 @@ export default function AirtimeReviewPage() {
         }
       }
     } catch (error: any) {
-      console.error('[AirtimeReview] Payment error:', error);
-      
+      console.error('[DataReview] Payment error:', error);
+
       // Handle idempotency errors
       if (error.isDuplicateError) {
         addToast({
-          message: 'This airtime purchase has already been processed. Please check your history.',
+          message: 'This data purchase has already been processed. Please check your history.',
           type: 'info',
         });
       } else if (error.isIdempotencyError) {
@@ -210,7 +234,7 @@ export default function AirtimeReviewPage() {
 
       setTransactionStatus('error');
     } finally {
-      console.log('[AirtimeReview] PIN verification completed, processing state:', isProcessing);
+      console.log('[DataReview] PIN verification completed, processing state:', isProcessing);
       setIsProcessing(false);
     }
   };
@@ -256,7 +280,7 @@ export default function AirtimeReviewPage() {
               }`}
             >
               <ChevronLeft size={16} />
-              Back to airtime
+              Back to data
             </button>
 
             <span className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#c7d2fe]">
@@ -264,7 +288,7 @@ export default function AirtimeReviewPage() {
             </span>
 
             <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              Confirm your airtime purchase
+              Confirm your data purchase
             </h1>
 
             <p className="mt-3 max-w-xl text-sm leading-7 text-[#cbd5e1] sm:text-base">
@@ -294,11 +318,9 @@ export default function AirtimeReviewPage() {
 
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
               <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Total
+                Status
               </p>
-              <p className="mt-3 text-lg font-bold text-white">
-                {formatCurrency(totalAmount)}
-              </p>
+              <p className="mt-3 text-lg font-bold text-white">Pending</p>
             </div>
           </div>
         </div>
@@ -313,7 +335,7 @@ export default function AirtimeReviewPage() {
                   ✓
                 </div>
                 <span className="text-sm font-semibold text-[#111827]">
-                  Select Provider & Amount
+                  Select Provider & Plan
                 </span>
               </div>
               <div className="h-[2px] flex-1 bg-[#4a5ff7]" />
@@ -340,23 +362,16 @@ export default function AirtimeReviewPage() {
               </div>
 
               <div className="flex items-center justify-between rounded-2xl bg-[#f8fafc] px-4 py-4">
-                <span className="text-sm text-[#6b7280]">Phone Number</span>
-                <span className="text-sm font-semibold text-[#111827]">
-                  {formData.phone}
+                <span className="text-sm text-[#6b7280]">Data Plan</span>
+                <span className="text-sm font-semibold text-[#111827] text-right max-w-xs">
+                  {formData.variationName}
                 </span>
               </div>
 
               <div className="flex items-center justify-between rounded-2xl bg-[#f8fafc] px-4 py-4">
-                <span className="text-sm text-[#6b7280]">Airtime Amount</span>
+                <span className="text-sm text-[#6b7280]">Plan Code</span>
                 <span className="text-sm font-semibold text-[#111827]">
-                  {formatCurrency(amount)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between rounded-2xl bg-[#f8fafc] px-4 py-4">
-                <span className="text-sm text-[#6b7280]">Convenience Fee</span>
-                <span className="text-sm font-semibold text-[#111827]">
-                  {formatCurrency(convenienceFee)}
+                  {formData.variationCode}
                 </span>
               </div>
 
@@ -365,9 +380,32 @@ export default function AirtimeReviewPage() {
                   Total Amount
                 </span>
                 <span className="text-2xl font-extrabold tracking-tight text-[#4a5ff7]">
-                  {formatCurrency(totalAmount)}
+                  {formatCurrency(amount)}
                 </span>
               </div>
+            </div>
+          </Card>
+
+          <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-8 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
+              Recipient Details
+            </h2>
+
+            <div className="mt-6 space-y-4">
+              <Input
+                label="Phone Number"
+                type="tel"
+                placeholder="08012345678"
+                value={phoneNumber}
+                onChange={(e) => {
+                  setPhoneNumber(e.target.value);
+                  setPhoneError('');
+                }}
+                onBlur={validatePhoneNumber}
+                error={phoneError}
+                helperText="Format: 08xxxxxxxxx or +2348xxxxxxxxx"
+                icon={<Wifi size={18} />}
+              />
             </div>
           </Card>
 
@@ -491,8 +529,10 @@ export default function AirtimeReviewPage() {
               </div>
 
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[#6b7280]">Phone</span>
-                <span className="font-semibold text-[#111827]">{formData.phone}</span>
+                <span className="text-[#6b7280]">Plan</span>
+                <span className="font-semibold text-[#111827] text-right max-w-xs">
+                  {formData.variationName?.substring(0, 50)}...
+                </span>
               </div>
 
               <div className="flex items-center justify-between text-sm">
@@ -501,19 +541,12 @@ export default function AirtimeReviewPage() {
                   {formatCurrency(amount)}
                 </span>
               </div>
-
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-[#6b7280]">Fee</span>
-                <span className="font-semibold text-[#111827]">
-                  {formatCurrency(convenienceFee)}
-                </span>
-              </div>
             </div>
 
             <div className="mt-5 mb-6 flex items-center justify-between">
               <span className="text-base font-semibold text-[#111827]">Total</span>
               <span className="text-2xl font-extrabold tracking-tight text-[#4a5ff7]">
-                {formatCurrency(totalAmount)}
+                {formatCurrency(amount)}
               </span>
             </div>
 

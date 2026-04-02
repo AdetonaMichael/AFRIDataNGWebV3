@@ -105,11 +105,23 @@ export default function DashboardPage() {
           setWallet(walletRes.data.wallet);
         }
 
+        // Handle transaction response - it has nested structure with data.data
         if (transactionsRes?.data?.data) {
+          console.log('[Dashboard] Loaded transactions:', transactionsRes.data.data);
           setTransactions(transactionsRes.data.data);
+        } else if (transactionsRes?.data) {
+          console.log('[Dashboard] Transaction response:', transactionsRes.data);
+          // Fallback in case structure is different
+          const txData = transactionsRes.data as any;
+          if (Array.isArray(txData)) {
+            setTransactions(txData);
+          }
+        } else {
+          console.warn('[Dashboard] No transaction data found in response:', transactionsRes);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        setTransactions([]); // Set empty array on error
       } finally {
         setLoading(false);
       }

@@ -4,7 +4,8 @@ import { useAuthStore } from '@/store/auth.store';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Spinner } from '@/components/shared/Spinner';
-import { ChevronDown, LogOut, Menu, Settings, X } from 'lucide-react';
+import { Topbar } from '@/components/shared/Topbar';
+import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 
 const adminNavItems = [
@@ -17,7 +18,7 @@ const adminNavItems = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, logout } = useAuthStore();
+  const { user, activeRole } = useAuthStore();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -25,7 +26,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     // Check if user is admin
     if (!user) {
-      router.push('/login');
+      router.push('/auth/login');
       return;
     }
 
@@ -35,8 +36,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return;
     }
 
+    // If user has multiple roles but activeRole is not admin, redirect to appropriate dashboard
+    if (activeRole && activeRole !== 'admin') {
+      const path = activeRole === 'agent' ? '/agent' : '/dashboard';
+      router.push(path);
+      return;
+    }
+
     setLoading(false);
-  }, [user, router]);
+  }, [user, activeRole, router]);
 
   if (loading) {
     return (
@@ -45,11 +53,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
     );
   }
-
-  const handleLogout = () => {
-    logout();
-    router.push('/');
-  };
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -79,43 +82,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Link>
             ))}
           </nav>
-
-          {/* User Info */}
-          <div className="border-t border-gray-800 px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-white text-sm">{user?.first_name} {user?.last_name}</p>
-                <p className="text-gray-400 text-xs">Administrator</p>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="p-2 hover:bg-gray-800 rounded-lg transition"
-                title="Logout"
-              >
-                <LogOut size={18} />
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between md:justify-end">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
-          >
-            {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-
-          <div className="flex items-center gap-4">
-            <button className="p-2 hover:bg-gray-100 rounded-lg">
-              <Settings size={20} className="text-gray-600" />
-            </button>
-          </div>
-        </div>
+        <Topbar onMenuToggle={() => setSidebarOpen(!sidebarOpen)} mobileMenuOpen={sidebarOpen} />
 
         {/* Backdrop for mobile */}
         {sidebarOpen && (

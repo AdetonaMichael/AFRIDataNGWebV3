@@ -35,11 +35,15 @@ class AuthService {
     return apiClient.post('/auth/verify-email', data);
   }
 
-  async forgotPassword(data: ForgotPasswordRequest): Promise<ApiResponse<void>> {
+  async forgotPassword(data: ForgotPasswordRequest): Promise<ApiResponse<{ email: string }>> {
     return apiClient.post('/auth/forgot-password', data);
   }
 
-  async resetPassword(data: ResetPasswordRequest): Promise<ApiResponse<{ user: User }>> {
+  async verifyPasswordResetOtp(data: { email: string; otp: string }): Promise<ApiResponse<{ email: string; reset_token: string }>> {
+    return apiClient.post('/auth/verify-password-reset-otp', data);
+  }
+
+  async resetPassword(data: ResetPasswordRequest): Promise<ApiResponse<void>> {
     return apiClient.post('/auth/reset-password', data);
   }
 

@@ -310,9 +310,9 @@ export default function Home() {
             </div>
 
             <h1 className="mb-5 text-4xl font-extrabold leading-tight tracking-tight text-[#0a0a0a] sm:text-5xl lg:text-6xl">
-              Fast digital services.
+              AFRIDataNG
               <br />
-              <span className="text-[#aab9f8]">One clean platform.</span>
+              <span className="text-[#aab9f8]">Your Trusted Data Hub.</span>
             </h1>
 
             <p className="mb-8 max-w-xl text-base leading-relaxed text-[#555] sm:text-lg">

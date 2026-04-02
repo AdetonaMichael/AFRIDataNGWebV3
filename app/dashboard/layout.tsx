@@ -19,6 +19,8 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useUIStore } from '@/store/ui.store';
 import { Button } from '@/components/shared/Button';
+import { Topbar } from '@/components/shared/Topbar';
+import { AuthProtected } from '@/components/AuthProtected';
 import { clsx } from 'clsx';
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -31,7 +33,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { href: '/dashboard', label: 'Dashboard', icon: Home },
     { href: '/dashboard/airtime', label: 'Buy Airtime', icon: Phone },
     { href: '/dashboard/data', label: 'Buy Data', icon: Wifi },
-    { href: '/dashboard/bills', label: 'Pay Bills', icon: FileText },
+    { href: '/dashboard/bills', label: 'Electricity Token', icon: FileText },
     { href: '/dashboard/history', label: 'History', icon: Activity },
     { href: '/dashboard/referral', label: 'Referral', icon: Gift },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
@@ -40,7 +42,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const isActive = (href: string) => pathname === href;
 
   return (
-    <div className="h-screen bg-gray-50 flex">
+    <AuthProtected requireAuth={true}>
+      <div className="h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <aside
         className={clsx(
@@ -92,23 +95,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
-        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden text-gray-500 hover:text-gray-900"
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-
-          <div className="flex-1 flex items-center justify-between ml-4 md:ml-0">
-            <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard/settings" className="text-gray-700 hover:text-gray-900">
-                {user ? `${user.first_name} ${user.last_name}` : 'User'}
-              </Link>
-            </div>
-          </div>
-        </header>
+        <Topbar onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} mobileMenuOpen={mobileMenuOpen} />
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
@@ -141,6 +128,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         </main>
       </div>
     </div>
+    </AuthProtected>
   );
 };
 

@@ -217,19 +217,29 @@ class PaymentService {
    * Purchase data bundle with idempotency
    */
   async purchaseData(
-    payload: DataPurchaseRequest,
+    payload: any,
     retryCount: number = 0
   ): Promise<ApiResponse<any>> {
     try {
       console.log('[PaymentService] Purchasing data:', {
-        provider: payload.provider,
+        service_id: payload.service_id,
         phone: payload.phone_number,
-        planId: payload.plan_id,
-        amount: payload.amount,
+        variation_code: payload.variation_code,
         retryCount,
       });
 
-      const response = await apiClient.post('/transactions/data/purchase', payload);
+      // Map fields to API expected format for /vtu/pay endpoint
+      const apiPayload = {
+        serviceID: payload.service_id,
+        phone: payload.phone_number,
+        amount: payload.amount,
+        variation_code: payload.variation_code,
+        ...(payload.user_id && { user_id: payload.user_id }),
+        ...(payload.payment_method && { payment_method: payload.payment_method }),
+        ...(payload.request_id && { request_id: payload.request_id }),
+      };
+
+      const response = await apiClient.post('/vtu/pay', apiPayload);
 
       console.log('[PaymentService] Data purchase successful:', response);
       return response;
@@ -265,7 +275,7 @@ class PaymentService {
         retryCount,
       });
 
-      const response = await apiClient.post('/transactions/data/purchase/confirm', {
+      const response = await apiClient.post('/vtu/pay/confirm', {
         ...pinData,
       });
 
@@ -355,6 +365,90 @@ class PaymentService {
         console.log(`[PaymentService] Retrying bill confirmation (attempt ${retryCount + 1}/3)`);
         await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
         return this.confirmBillPayment(requestId, pinData, retryCount + 1);
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Purchase electricity bill with idempotency
+   * Maps electricity form data to /vtu/pay endpoint
+   */
+  async purchaseElectricity(payload: any, retryCount: number = 0): Promise<ApiResponse<any>> {
+    try {
+      console.log('[PaymentService] Purchasing electricity:', {
+        serviceID: payload.serviceID,
+        billersCode: payload.billersCode,
+        amount: payload.amount,
+        retryCount,
+      });
+
+      // Map fields to API expected format for /vtu/pay endpoint
+      const apiPayload = {
+        serviceID: payload.serviceID,
+        phone: payload.phone,
+        amount: payload.amount,
+        billersCode: payload.billersCode,
+        variation_code: payload.variation_code,
+        ...(payload.user_id && { user_id: payload.user_id }),
+        ...(payload.user_email && { user_email: payload.user_email }),
+        ...(payload.payment_method && { payment_method: payload.payment_method }),
+        ...(payload.request_id && { request_id: payload.request_id }),
+      };
+
+      const response = await apiClient.post('/vtu/pay', apiPayload);
+
+      console.log('[PaymentService] Electricity purchase successful:', response);
+      return response;
+    } catch (error: any) {
+      console.error('[PaymentService] Electricity purchase failed:', error);
+
+      // Retry logic for network errors
+      if (
+        retryCount < 3 &&
+        !error.isIdempotencyError &&
+        (error.code === 'ECONNABORTED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT')
+      ) {
+        console.log(`[PaymentService] Retrying electricity purchase (attempt ${retryCount + 1}/3)`);
+        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+        return this.purchaseElectricity(payload, retryCount + 1);
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Generic confirm payment with PIN verification
+   * Works for airtime, data, and electricity
+   */
+  async confirmPayment(
+    pinData: any,
+    retryCount: number = 0
+  ): Promise<ApiResponse<any>> {
+    try {
+      console.log('[PaymentService] Confirming payment:', {
+        requestId: pinData.request_id,
+        retryCount,
+      });
+
+      const response = await apiClient.post('/vtu/pay/confirm', pinData);
+
+      console.log('[PaymentService] Payment confirmation successful:', response);
+      return response;
+    } catch (error: any) {
+      console.error('[PaymentService] Payment confirmation failed:', error);
+
+      // Retry logic for network errors
+      if (
+        retryCount < 3 &&
+        !error.isIdempotencyError &&
+        (error.code === 'ECONNABORTED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT')
+      ) {
+        console.log(`[PaymentService] Retrying payment confirmation (attempt ${retryCount + 1}/3)`);
+        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+        return this.confirmPayment(pinData, retryCount + 1);
       }
 
       throw error;
