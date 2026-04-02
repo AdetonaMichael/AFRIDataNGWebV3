@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowRight, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
 
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/shared/Button';
@@ -15,6 +16,7 @@ import { icon } from '../../../public';
 
 export default function LoginPage() {
   const { login, isLoading } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -126,14 +128,35 @@ export default function LoginPage() {
                   {...register('email')}
                 />
 
-                <Input
-                  label="Password"
-                  type="password"
-                  placeholder="••••••••"
-                  icon={<Lock size={18} />}
-                  error={errors.password?.message}
-                  {...register('password')}
-                />
+                {/* Password Input with Visibility Toggle */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-[#0a0a0a]">Password</label>
+                  <div className="relative">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                      <Lock size={16} />
+                    </div>
+                    <input
+                      {...register('password')}
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      className={`w-full pl-10 pr-11 py-3 text-sm rounded-lg border bg-white text-[#0a0a0a] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#aab9f8] focus:border-transparent transition-all duration-200 ${
+                        errors.password?.message ? 'border-red-400 focus:ring-red-400' : 'border-gray-200'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#aab9f8] transition-colors"
+                      tabIndex={-1}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  {errors.password?.message && (
+                    <p className="text-xs text-red-500 font-medium">{errors.password.message}</p>
+                  )}
+                </div>
 
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <label className="inline-flex items-center gap-2 text-sm text-[#666] cursor-pointer">

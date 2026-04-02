@@ -9,13 +9,56 @@ import {
   PaginatedResponse,
   ApiResponse,
 } from '@/types/api.types';
+import { useAuth } from '@/hooks/useAuth';
+
+// Extended transaction type for API responses
+export interface ExtendedTransaction extends Transaction {
+  transaction_type?: string;
+  transaction_date?: string;
+  service_logo?: string | null;
+  purchased_code?: string | null;
+  metadata?: Record<string, any>;
+  transactionable_type?: string;
+  transactionable_id?: string;
+  transactionable?: Record<string, any>;
+}
+
+export interface TransactionsApiResponse {
+  success: boolean;
+  message: string;
+  data: {
+    success: boolean;
+    data: ExtendedTransaction[];
+    pagination: {
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+      from: number;
+      to: number;
+    };
+  };
+}
 
 class TransactionService {
-  async getTransactions(filters?: TransactionFilters): Promise<ApiResponse<PaginatedResponse<Transaction>>> {
+  async getTransactions(userIdOrFilters?: string | TransactionFilters, filters?: TransactionFilters): Promise<TransactionsApiResponse> {
+    let userId = '';
+    let actualFilters = filters;
+
+    // Handle both call signatures:
+    // getTransactions(userId, filters)
+    // getTransactions(filters)
+    if (typeof userIdOrFilters === 'string') {
+      userId = userIdOrFilters;
+      actualFilters = filters;
+    } else if (typeof userIdOrFilters === 'object' && userIdOrFilters !== null) {
+      actualFilters = userIdOrFilters as TransactionFilters;
+    }
+
     const params = new URLSearchParams();
 
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
+    if (actualFilters) {
+      Object.entries(actualFilters).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           params.append(key, String(value));
         }
@@ -23,7 +66,8 @@ class TransactionService {
     }
 
     const query = params.toString() ? `?${params.toString()}` : '';
-    return apiClient.get(`/transactions${query}`);
+    const endpoint = userId ? `/transactions/me/${userId}${query}` : `/transactions${query}`;
+    return apiClient.get(endpoint) as Promise<TransactionsApiResponse>;
   }
 
   async getTransaction(transactionId: string): Promise<ApiResponse<{ transaction: Transaction }>> {

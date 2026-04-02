@@ -28,7 +28,7 @@ import { icon } from '../../../public';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STEPS = [
-  { id: 1, label: 'Personal', fields: ['name', 'email'] as const,                        description: 'Tell us who you are'  },
+  { id: 1, label: 'Personal', fields: ['first_name', 'last_name', 'email'] as const,                        description: 'Tell us who you are'  },
   { id: 2, label: 'Contact',  fields: ['phone'] as const,                                description: 'How can we reach you' },
   { id: 3, label: 'Security', fields: ['password', 'password_confirmation'] as const,    description: 'Secure your account'  },
 ];
@@ -184,21 +184,21 @@ function StepIndicator({ current }: { current: number }) {
           <div key={step.id} className="flex items-center">
             <div className="flex flex-col items-center">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                done   ? 'bg-[#4a5ff7] text-white'
-                : active ? 'bg-[#4a5ff7] text-white ring-4 ring-[#eef0fe]'
+                done   ? 'bg-[#aab9f8] text-white'
+                : active ? 'bg-[#aab9f8] text-white ring-4 ring-[#eef2ff]'
                 : 'bg-gray-100 text-gray-400 border border-gray-200'
               }`}>
                 {done ? <CheckCircle2 size={14} /> : step.id}
               </div>
               <span className={`text-[10px] font-semibold mt-1.5 whitespace-nowrap transition-colors duration-300 ${
-                active ? 'text-[#4a5ff7]' : done ? 'text-[#0a0a0a]' : 'text-gray-400'
+                active ? 'text-[#aab9f8]' : done ? 'text-[#0a0a0a]' : 'text-gray-400'
               }`}>
                 {step.label}
               </span>
             </div>
             {idx < STEPS.length - 1 && (
               <div className={`h-[2px] w-12 sm:w-16 mx-1 mb-5 rounded-full transition-all duration-500 ${
-                current > step.id ? 'bg-[#4a5ff7]' : 'bg-gray-200'
+                current > step.id ? 'bg-[#aab9f8]' : 'bg-gray-200'
               }`} />
             )}
           </div>
@@ -230,14 +230,14 @@ function PasswordInput({
           {...registration}
           type={visible ? 'text' : 'password'}
           placeholder={placeholder}
-          className={`w-full pl-10 pr-11 py-3 text-sm rounded-lg border bg-white text-[#0a0a0a] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4a5ff7] focus:border-transparent transition-all duration-200 ${
+          className={`w-full pl-10 pr-11 py-3 text-sm rounded-lg border bg-white text-[#0a0a0a] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#aab9f8] focus:border-transparent transition-all duration-200 ${
             error ? 'border-red-400 focus:ring-red-400' : 'border-gray-200'
           }`}
         />
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#4a5ff7] transition-colors"
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#aab9f8] transition-colors"
           tabIndex={-1}
           aria-label={visible ? 'Hide password' : 'Show password'}
         >
@@ -266,7 +266,7 @@ export default function RegisterPage() {
   });
 
   const stepFields: Record<number, (keyof RegisterSchema)[]> = {
-    1: ['name', 'email'],
+    1: ['first_name', 'last_name', 'email'],
     2: ['phone'],
     3: ['password', 'password_confirmation'],
   };
@@ -313,11 +313,9 @@ export default function RegisterPage() {
           <div className="w-full max-w-md">
 
             {/* Mobile logo */}
-            <div className="mb-8 lg:hidden">
+            <div className="mb-8 lg:hidden flex justify-center">
               <Link href="/" className="inline-flex items-center gap-2">
-                <div className="w-8 h-8 bg-[#4a5ff7] rounded-md flex items-center justify-center">
-                  <span className="text-sm font-bold text-white">A</span>
-                </div>
+                <Image src={icon} alt="AFRIDataNG Logo" width={32} height={32} />
                 <span className="text-lg font-bold tracking-tight text-[#0a0a0a]">AFRIDataNG</span>
               </Link>
             </div>
@@ -342,14 +340,24 @@ export default function RegisterPage() {
                 {/* Step 1 — Personal */}
                 {currentStep === 1 && (
                   <div className="space-y-5 step-animate">
-                    <Input
-                      label="Full Name"
-                      type="text"
-                      placeholder="John Doe"
-                      icon={<User size={18} />}
-                      error={errors.name?.message}
-                      {...register('name')}
-                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Input
+                        label="First Name"
+                        type="text"
+                        placeholder="John"
+                        icon={<User size={18} />}
+                        error={errors.first_name?.message}
+                        {...register('first_name')}
+                      />
+                      <Input
+                        label="Last Name"
+                        type="text"
+                        placeholder="Doe"
+                        icon={<User size={18} />}
+                        error={errors.last_name?.message}
+                        {...register('last_name')}
+                      />
+                    </div>
                     <Input
                       label="Email Address"
                       type="email"
@@ -392,7 +400,7 @@ export default function RegisterPage() {
                           placeholder="e.g. AFRI-XXXXX"
                           autoComplete="off"
                           spellCheck={false}
-                          className="w-full pl-10 pr-4 py-3 text-sm rounded-lg border border-gray-200 bg-white text-[#0a0a0a] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4a5ff7] focus:border-transparent transition-all duration-200 uppercase tracking-wider"
+                          className="w-full pl-10 pr-4 py-3 text-sm rounded-lg border border-gray-200 bg-white text-[#0a0a0a] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#aab9f8] focus:border-transparent transition-all duration-200 uppercase tracking-wider"
                         />
                       </div>
                       <p className="text-xs text-gray-400 leading-5">
@@ -422,11 +430,11 @@ export default function RegisterPage() {
                       <input
                         type="checkbox"
                         required
-                        className="mt-1 h-4 w-4 rounded border-gray-300 text-[#4a5ff7] focus:ring-[#4a5ff7] flex-shrink-0"
+                        className="mt-1 h-4 w-4 rounded border-gray-300 text-[#aab9f8] focus:ring-[#aab9f8] flex-shrink-0"
                       />
                       <span className="leading-6">
                         I agree to the{' '}
-                        <Link href="/terms" className="font-medium text-[#4a5ff7] hover:underline">
+                        <Link href="/terms" className="font-medium text-[#aab9f8] hover:underline">
                           Terms of Service
                         </Link>{' '}
                         and platform policies.
@@ -441,7 +449,7 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={handleBack}
-                      className="flex items-center justify-center gap-2 h-12 px-5 rounded-lg border border-gray-200 text-sm font-semibold text-[#555] hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                      className="flex items-center justify-center gap-2 h-11 px-5 rounded-lg border border-gray-200 text-sm font-semibold text-[#555] hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
                     >
                       <ArrowLeft size={15} />
                       Back
@@ -452,7 +460,7 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={handleNext}
-                      className="flex-1 flex items-center justify-center gap-2 h-12 rounded-lg bg-[#4a5ff7] hover:bg-[#3a4fe0] text-white text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md"
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg bg-[#aab9f8] hover:bg-[#9ba7f0] text-white text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md"
                     >
                       Continue
                       <ArrowRight size={15} />
@@ -462,7 +470,7 @@ export default function RegisterPage() {
                       type="submit"
                       fullWidth
                       isLoading={isLoading}
-                      className="flex-1 h-12 rounded-lg bg-[#4a5ff7] hover:bg-[#3a4fe0] text-white font-semibold"
+                      className="flex-1 py-3 rounded-lg bg-[#aab9f8] hover:bg-[#9ba7f0] text-white font-semibold"
                     >
                       <span className="inline-flex items-center justify-center gap-2">
                         Create Account

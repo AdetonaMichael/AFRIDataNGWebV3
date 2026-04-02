@@ -4,7 +4,8 @@ import { E164_PHONE_REGEX } from './constants';
 // Authentication Schemas
 export const registerSchema = z
   .object({
-    name: z.string().min(2, 'Name must be at least 2 characters').max(255),
+    first_name: z.string().min(2, 'First name must be at least 2 characters').max(255),
+    last_name: z.string().min(2, 'Last name must be at least 2 characters').max(255),
     email: z.string().email('Invalid email address'),
     phone: z
       .string()
