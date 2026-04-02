@@ -11,6 +11,7 @@ import { Input } from '@/components/shared/Input';
 import { Card } from '@/components/shared/Card';
 import { loginSchema, type LoginSchema } from '@/utils/validation.utils';
 import Image from 'next/image';
+import { icon } from '../../../public';
 
 export default function LoginPage() {
   const { login, isLoading } = useAuth();
@@ -47,10 +48,7 @@ export default function LoginPage() {
           <div className="relative z-10 flex flex-col justify-between p-10 xl:p-14 w-full">
             <div>
               <Link href="/" className="inline-flex items-center gap-2">
-                <div className="w-8 h-8 bg-[#4a5ff7] rounded-md flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-bold text-white">A</span>
-                  <Image src="/afridata-logo.png" alt="AFRIDataNG Logo" width={32} height={32} />
-                </div>
+                  <Image src={icon} alt="AFRIDataNG Logo" width={32} height={32} />
                 <span className="text-lg font-bold tracking-tight text-white">AFRIDataNG</span>
               </Link>
             </div>

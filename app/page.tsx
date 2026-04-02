@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -13,7 +14,11 @@ import {
   Wallet,
   Wifi,
   Zap,
+  Apple,
+  Download,
 } from 'lucide-react';
+import { icon } from '../public';
+import Image from 'next/image';
 
 const services = [
   {
@@ -61,6 +66,13 @@ const services = [
 ];
 
 const networks = ['MTN', 'Airtel', 'Glo', '9mobile'];
+
+const networkColors: Record<string, { border: string; bg: string; text: string }> = {
+  'MTN': { border: 'border-yellow-500', bg: 'bg-yellow-500', text: 'text-white' },
+  'Airtel': { border: 'border-red-500', bg: 'bg-red-500', text: 'text-white' },
+  'Glo': { border: 'border-green-500', bg: 'bg-green-500', text: 'text-white' },
+  '9mobile': { border: 'border-green-500', bg: 'bg-green-500', text: 'text-white' },
+};
 
 const stats = [
   { value: '500K+', label: 'Active Users' },
@@ -133,6 +145,102 @@ const faqs = [
   },
 ];
 
+function AdCarousel() {
+  const slides = [
+    {
+      image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=800&q=80',
+      title: 'Instant Airtime',
+      subtitle: 'Recharge all networks instantly',
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=800&q=80',
+      title: 'Data Bundles',
+      subtitle: 'Fast, reliable data plans',
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=800&q=80',
+      title: 'Pay Bills',
+      subtitle: 'Electricity, water & more',
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=800&q=80',
+      title: 'TV Subscription',
+      subtitle: 'DSTV, GOtv & Startimes',
+    },
+  ];
+
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [slides.length]);
+
+  return (
+    <div className="relative w-full h-80 sm:h-96 overflow-hidden rounded-[28px]">
+      {/* Slides */}
+      <div className="relative w-full h-full">
+        {slides.map((slide, index) => (
+          <div
+            key={index}
+            className={`absolute w-full h-full transition-opacity duration-1000 ease-in-out ${
+              index === currentSlide ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <Image
+              src={slide.image}
+              alt={slide.title}
+              fill
+              className="object-cover"
+            />
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            {/* Content */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 text-white">
+              <h3 className="text-2xl sm:text-4xl font-bold mb-2">{slide.title}</h3>
+              <p className="text-sm sm:text-base text-gray-200">{slide.subtitle}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Navigation Dots */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
+        {slides.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentSlide(index)}
+            className={`h-2 rounded-full transition-all ${
+              index === currentSlide
+                ? 'bg-[#aab9f8] w-8'
+                : 'bg-white/30 w-2 hover:bg-white/50'
+            }`}
+            aria-label={`Go to slide ${index + 1}`}
+          />
+        ))}
+      </div>
+
+      {/* Previous/Next Arrows */}
+      <button
+        onClick={() => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)}
+        className="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white p-2 rounded-full transition-all"
+        aria-label="Previous slide"
+      >
+        <ChevronRight size={20} className="transform rotate-180" />
+      </button>
+      <button
+        onClick={() => setCurrentSlide((prev) => (prev + 1) % slides.length)}
+        className="absolute right-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white p-2 rounded-full transition-all"
+        aria-label="Next slide"
+      >
+        <ChevronRight size={20} />
+      </button>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <div
@@ -149,9 +257,7 @@ export default function Home() {
       <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/90 backdrop-blur-md">
         <div className="h-16 w-full px-4 sm:px-8 lg:px-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#4a5ff7]">
-              <span className="text-sm font-bold text-white">A</span>
-            </div>
+            <Image src={icon} alt="AFRIDataNG Logo" width={32} height={32} />
             <span className="text-base font-bold tracking-tight text-[#0a0a0a]">
               AFRIDataNG
             </span>
@@ -199,16 +305,14 @@ export default function Home() {
         <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div>
             <div className="mb-5 flex flex-wrap items-center gap-2">
-              <span className="inline-block rounded-full border border-[#c7ccfb] bg-[#eef0fe] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#4a5ff7]">
-                Now Live in Nigeria
-              </span>
+        
               <span className="text-sm text-[#888]">Available 24/7 · All networks</span>
             </div>
 
             <h1 className="mb-5 text-4xl font-extrabold leading-tight tracking-tight text-[#0a0a0a] sm:text-5xl lg:text-6xl">
               Fast digital services.
               <br />
-              <span className="text-[#4a5ff7]">One clean platform.</span>
+              <span className="text-[#aab9f8]">One clean platform.</span>
             </h1>
 
             <p className="mb-8 max-w-xl text-base leading-relaxed text-[#555] sm:text-lg">
@@ -220,7 +324,7 @@ export default function Home() {
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 href="/auth/register"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#4a5ff7] px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#3a4fe0]"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#aab9f8] px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#3a4fe0]"
               >
                 Create Free Account
                 <ArrowRight size={16} />
@@ -239,81 +343,23 @@ export default function Home() {
               <span className="text-xs font-semibold uppercase tracking-wider text-[#aaa]">
                 Supports
               </span>
-              {networks.map((network) => (
-                <span
-                  key={network}
-                  className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-3 py-1.5 text-xs font-semibold text-[#333]"
-                >
-                  {network}
-                </span>
-              ))}
+              {networks.map((network) => {
+                const colors = networkColors[network];
+                return (
+                  <span
+                    key={network}
+                    className={`inline-flex items-center rounded-full border ${colors.border} ${colors.bg} px-3 py-1.5 text-xs font-semibold ${colors.text}`}
+                  >
+                    {network}
+                  </span>
+                );
+              })}
             </div>
           </div>
 
           <div className="w-full">
-            <div className="relative overflow-hidden rounded-[28px] border border-[#101828] bg-[#0a0a0a] p-6 text-white sm:p-8">
-              <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[#4a5ff7] opacity-10" />
-              <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-[#a9b7ff] opacity-[0.07]" />
-
-              <div className="relative z-10">
-                <div className="mb-6 flex items-center justify-between gap-4">
-                  <div>
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#7c8db5]">
-                      Wallet Balance
-                    </div>
-                    <div className="text-4xl font-bold tracking-tight sm:text-5xl">
-                      ₦12,500.00
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <Wallet className="h-5 w-5 text-[#a9b7ff]" />
-                  </div>
-                </div>
-
-                <div className="mb-6 grid grid-cols-2 gap-3">
-                  {[
-                    { label: 'Last Top-Up', value: '₦2,000' },
-                    { label: 'Primary Network', value: 'MTN' },
-                    { label: 'Data Balance', value: '3.2 GB' },
-                    { label: 'Account Status', value: 'Active' },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      className="rounded-2xl bg-white/[0.06] px-4 py-3"
-                    >
-                      <div className="mb-1 text-[11px] font-medium text-[#74809b]">
-                        {item.label}
-                      </div>
-                      <div className="text-sm font-semibold text-white">
-                        {item.value}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <div className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#7c8db5]">
-                    Quick Actions
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {['Buy Airtime', 'Buy Data', 'Pay Bills'].map((action) => (
-                      <span
-                        key={action}
-                        className="rounded-full border border-[#4a5ff7]/30 bg-[#4a5ff7]/15 px-3 py-1.5 text-xs font-semibold text-[#c7d2fe]"
-                      >
-                        {action}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-5 flex items-center gap-2 text-sm text-[#aeb8cf]">
-                  <ShieldCheck size={15} />
-                  Secure, fast, and always available.
-                </div>
-              </div>
+            <div className="relative overflow-hidden rounded-[28px] border border-[#101828] bg-[#0a0a0a] text-white">
+              <AdCarousel />
             </div>
           </div>
         </div>
@@ -337,11 +383,93 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="w-full px-4 py-16 sm:px-8 sm:py-24 lg:px-16">
+        <div className="grid w-full grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
+          {/* Left: Content and Buttons */}
+          <div>
+            <span className="mb-4 inline-flex items-center rounded-full border border-[#4a5ff7]/20 bg-[#4a5ff7]/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#4a5ff7]">
+              Mobile App
+            </span>
+
+            <h2 className="mb-4 text-4xl font-extrabold leading-tight tracking-tight text-[#0a0a0a] sm:text-5xl">
+              Experience AFRIDataNG
+              <br />
+              <span className="text-[#aab9f8]">On the Go</span>
+            </h2>
+
+            <p className="mb-8 max-w-xl text-base leading-relaxed text-[#666]">
+              Download our mobile app and enjoy seamless access to all services. Faster transactions, instant notifications, and a smooth experience designed for mobile-first users.
+            </p>
+
+            <div className="mb-8 space-y-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <a
+                  href="#"
+                  className="flex-1 inline-flex items-center justify-center gap-3 rounded-xl border border-black/10 bg-black px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-black/90"
+                >
+                  <Apple size={18} />
+                  <div className="text-left">
+                    <div className="text-xs text-white/70">Download on</div>
+                    <div className="font-bold leading-none">App Store</div>
+                  </div>
+                </a>
+
+                <a
+                  href="#"
+                  className="flex-1 inline-flex items-center justify-center gap-3 rounded-xl border border-black/10 bg-black  px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-black/90"
+                >
+                  <Smartphone size={18} />
+                  <div className="text-left">
+                    <div className="text-xs text-white/70">Get it on</div>
+                    <div className="font-bold leading-none">Google Play</div>
+                  </div>
+                </a>
+              </div>
+
+              <a
+                href="#"
+                className="w-full inline-flex items-center justify-center gap-3 rounded-xl border border-[#aab9f8] bg-[#aab9f8] px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-[#9aabf0]"
+              >
+                <Download size={18} />
+                <div className="text-left">
+                  <div className="text-xs text-white/80">Direct</div>
+                  <div className="font-bold leading-none">Download</div>
+                </div>
+              </a>
+            </div>
+
+            <p className="text-sm text-[#888]">
+              ✓ Available for iOS and Android
+              <br />✓ Secure and fast transactions
+              <br />✓ Push notifications for updates
+            </p>
+          </div>
+
+          {/* Right: Mobile App Mockup */}
+          <div className="relative flex items-center justify-center">
+            <div className="absolute -right-8 -top-8 h-64 w-64 rounded-full bg-[#4a5ff7] opacity-[0.08]" />
+            <div className="absolute -bottom-8 -left-8 h-48 w-48 rounded-full bg-[#a9b7ff] opacity-[0.06]" />
+
+            <div className="relative z-10 rounded-[2.5rem] bg-black p-2 shadow-2xl" style={{ width: 'fit-content' }}>
+              {/* Device Bezel */}
+              <div className="rounded-[2rem] overflow-hidden border-[6px] border-black bg-black">
+                <Image
+                  src="/afri2.png"
+                  alt="AFRIDataNG Mobile App"
+                  width={360}
+                  height={680}
+                  priority
+                  className="w-full max-w-xs"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="services" className="w-full px-4 py-16 sm:px-8 sm:py-24 lg:px-16">
         <div className="mb-12">
-          <span className="mb-4 inline-block rounded-full border border-[#c7ccfb] bg-[#eef0fe] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#4a5ff7]">
-            Our Services
-          </span>
+          
           <h2 className="mb-3 text-3xl font-extrabold tracking-tight text-[#0a0a0a] sm:text-4xl">
             Everything you need, in one place.
           </h2>
@@ -377,11 +505,11 @@ export default function Home() {
                   <p className="text-sm leading-7 text-[#666]">{service.desc}</p>
 
                   <div className="mt-5 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-[#111827]">
+                    <span className="text-sm font-semibold text-[#aab9f8]">
                       Explore service
                     </span>
                     <div className="rounded-full bg-[#eef2ff] p-2 transition-colors group-hover:bg-[#4a5ff7]">
-                      <ChevronRight className="h-4 w-4 text-[#4a5ff7] group-hover:text-white" />
+                      <ChevronRight className="h-4 w-4 text-[#aab9f8] group-hover:text-white" />
                     </div>
                   </div>
                 </div>
@@ -397,9 +525,7 @@ export default function Home() {
       >
         <div className="grid w-full grid-cols-1 items-start gap-12 px-4 py-16 sm:px-8 sm:py-24 lg:grid-cols-2 lg:gap-20 lg:px-16">
           <div>
-            <span className="mb-4 inline-block rounded-full border border-[#c7ccfb] bg-[#eef0fe] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#4a5ff7]">
-              Process
-            </span>
+            
             <h2 className="mb-3 text-3xl font-extrabold tracking-tight text-[#0a0a0a] sm:text-4xl">
               Up and running in four steps.
             </h2>
@@ -409,7 +535,7 @@ export default function Home() {
             </p>
             <Link
               href="/auth/register"
-              className="inline-flex items-center gap-2 rounded-lg bg-[#0a0a0a] px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-[#222]"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#aab9f8] px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-[#222]"
             >
               Start Now
               <ArrowRight size={16} />
@@ -427,7 +553,7 @@ export default function Home() {
                 <div
                   className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
                     index === 0
-                      ? 'bg-[#4a5ff7] text-white'
+                      ? 'bg-[#aab9f8] text-white'
                       : 'bg-gray-200 text-[#888]'
                   }`}
                 >
@@ -442,83 +568,6 @@ export default function Home() {
                     {step.body}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="w-full px-4 py-16 sm:px-8 sm:py-24 lg:px-16">
-        <div className="mb-12 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <span className="mb-4 inline-block rounded-full border border-[#c7ccfb] bg-[#eef0fe] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#4a5ff7]">
-              Reviews
-            </span>
-            <h2 className="text-3xl font-extrabold tracking-tight text-[#0a0a0a] sm:text-4xl">
-              Trusted by real people.
-            </h2>
-          </div>
-
-          <div className="flex items-center gap-1">
-            {'★★★★★'.split('').map((star, index) => (
-              <span key={index} className="text-xl text-[#4a5ff7]">
-                {star}
-              </span>
-            ))}
-            <span className="ml-2 text-sm font-medium text-[#888]">4.9 / 5</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {testimonials.map((testimonial) => (
-            <div
-              key={testimonial.name}
-              className="rounded-[24px] border border-gray-200 bg-[#fafafa] p-6 sm:p-7"
-            >
-              <p className="mb-6 text-sm leading-7 text-[#444]">
-                “{testimonial.text}”
-              </p>
-
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#4a5ff7] text-sm font-bold text-white">
-                  {testimonial.name[0]}
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-[#0a0a0a]">
-                    {testimonial.name}
-                  </div>
-                  <div className="text-xs font-medium text-[#aaa]">
-                    {testimonial.role}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="faq" className="w-full border-t border-gray-100 bg-gray-50">
-        <div className="w-full px-4 py-16 sm:px-8 sm:py-24 lg:px-16">
-          <span className="mb-4 inline-block rounded-full border border-[#c7ccfb] bg-[#eef0fe] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#4a5ff7]">
-            FAQ
-          </span>
-          <h2 className="mb-10 text-3xl font-extrabold tracking-tight text-[#0a0a0a] sm:text-4xl">
-            Quick answers.
-          </h2>
-
-          <div className="max-w-3xl">
-            {faqs.map((item, index) => (
-              <div
-                key={item.q}
-                className={`py-5 ${
-                  index === 0 ? 'border-y border-gray-200' : 'border-b border-gray-200'
-                }`}
-              >
-                <div className="mb-2 flex items-start gap-3">
-                  <CircleHelp className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#4a5ff7]" />
-                  <div className="text-sm font-bold text-[#0a0a0a]">{item.q}</div>
-                </div>
-                <div className="pl-7 text-sm leading-relaxed text-[#666]">{item.a}</div>
               </div>
             ))}
           </div>
@@ -544,7 +593,7 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-3">
             <Link
               href="/auth/register"
-              className="inline-flex items-center gap-2 rounded-lg bg-[#4a5ff7] px-7 py-3.5 text-sm font-semibold text-white transition-all hover:bg-[#3a4fe0]"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#aab9f8] px-7 py-3.5 text-sm font-semibold text-white transition-all hover:bg-[#3a4fe0]"
             >
               Create Free Account
               <ArrowRight size={16} />
@@ -568,9 +617,7 @@ export default function Home() {
           <div className="mb-10 grid grid-cols-2 gap-8 lg:grid-cols-4">
             <div className="col-span-2 lg:col-span-1">
               <div className="mb-4 flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#4a5ff7]">
-                  <span className="text-xs font-bold text-white">A</span>
-                </div>
+                  <Image src={icon} alt="AFRIDataNG Logo" width={32} height={32} />
                 <span className="text-sm font-bold tracking-tight text-[#0a0a0a]">
                   AFRIDataNG
                 </span>

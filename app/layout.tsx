@@ -15,15 +15,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AFRIDataNG - Virtual Top-up, Airtime & Bills Payment Platform",
-  description: "Buy airtime, data bundles, pay bills, and send money instantly with AFRIDataNG. The fastest and most reliable telecom service provider in Africa.",
+  title: "AFRIDataNG - Buy Airtime, Data & Pay For Bills",
+  description: "Buy airtime, data bundles, pay bills with AFRIDataNG. The fastest and most reliable telecom service provider",
   keywords: "airtime, data bundles, bills payment, top-up, VTU, telecom, Africa, Nigeria, MTN, Airtel, Glo, 9mobile",
   authors: [{ name: "AFRIDataNG" }],
   creator: "AFRIDataNG",
   publisher: "AFRIDataNG",
   robots: "index, follow",
   alternates: {
-    canonical: "https://afridatawebv3.com",
+    canonical: "https://api.afridata.remonode.com",
   },
   viewport: {
     width: "device-width",

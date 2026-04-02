@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '**.vtpass.com',
       },
+      {
+        protocol: 'https',
+        hostname: '**.unsplash.com',
+      },
     ],
   },
   async headers() {
