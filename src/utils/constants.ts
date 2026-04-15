@@ -13,6 +13,7 @@ export const TRANSACTION_STATUSES = {
   pending: { label: 'Pending', color: 'warning' },
   processing: { label: 'Processing', color: 'info' },
   completed: { label: 'Completed', color: 'success' },
+  success: { label: 'Success', color: 'success' },
   failed: { label: 'Failed', color: 'error' },
   cancelled: { label: 'Cancelled', color: 'default' },
 } as const;

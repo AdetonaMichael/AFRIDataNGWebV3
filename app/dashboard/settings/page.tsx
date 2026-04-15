@@ -117,54 +117,7 @@ export default function SettingsPage() {
         }
       `}</style>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-[30px] border border-[#e5e7eb] bg-[#0b1220] px-6 py-8 sm:px-8 sm:py-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(74,95,247,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.06),transparent_24%)]" />
 
-        <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-        
-
-            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              Manage your account
-              <br />
-              with clarity and control
-            </h1>
-
-            <p className="mt-3 max-w-xl text-sm leading-7 text-[#cbd5e1] sm:text-base">
-              Update your personal information, strengthen account security, and
-              control how AFRIDataNG communicates with you.
-            </p>
-          </div>
-
-          <div className="grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Profile Status
-              </p>
-              <p className="mt-3 text-lg font-bold text-white">Active</p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Verification
-              </p>
-              <p className="mt-3 text-lg font-bold text-white capitalize">
-                Pending
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Security
-              </p>
-              <p className="mt-3 text-lg font-bold text-white">
-                Standard
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[320px_minmax(0,1fr)]">
         {/* Sidebar Summary */}

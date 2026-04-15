@@ -281,6 +281,62 @@ class VTUService {
       throw error;
     }
   }
+
+  /**
+   * Get all TV subscription providers
+   * Convenience method for TV subscription flow
+   */
+  async getTVProviders(): Promise<VTUProvider[] | null> {
+    console.log('[VTUService] Fetching TV providers...');
+    try {
+      const result = await this.getServiceProviders('tv-subscription');
+      console.log('[VTUService] TV providers loaded:', {
+        isArray: Array.isArray(result),
+        count: Array.isArray(result) ? result.length : 0,
+      });
+      return result;
+    } catch (error) {
+      console.error('[VTUService] Error fetching TV providers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get variations (subscription plans) for a TV provider
+   * @param serviceId - Service ID (e.g., 'dstv', 'gotv', 'startimes')
+   */
+  async getTVVariations(serviceId: string): Promise<VTUVariationResponse | null> {
+    console.log('[VTUService] Fetching TV variations for:', serviceId);
+    return this.getVariations(serviceId);
+  }
+
+  /**
+   * Verify smartcard/decoder number for TV subscription
+   * @param smartcardNumber - Customer's smartcard/decoder number
+   * @param serviceID - TV provider service ID (e.g., 'dstv', 'gotv')
+   */
+  async verifySmartcard(
+    smartcardNumber: string,
+    serviceID: string
+  ): Promise<any> {
+    try {
+      console.log('[VTUService] Verifying smartcard:', {
+        smartcardNumber: smartcardNumber.slice(0, 4) + '****',
+        serviceID,
+      });
+
+      const response = await apiClient.post('/vtu/merchant-verify', {
+        billersCode: smartcardNumber,
+        serviceID: serviceID,
+      });
+
+      console.log('[VTUService] Smartcard verification response:', response);
+      return response;
+    } catch (error) {
+      console.error('[VTUService] Smartcard verification failed:', error);
+      throw error;
+    }
+  }
 }
 
 export const vtuService = new VTUService();

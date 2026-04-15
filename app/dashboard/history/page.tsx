@@ -183,15 +183,9 @@ export default function HistoryPage() {
     setSearchInput('');
     setFilters(INITIAL_FILTERS);
   };
-  // Initial load check - show minimal skeleton while fetching first time
+  // Check if we're doing pagination load (not initial) vs initial load
   const isInitialLoading = loading && transactions.length === 0;
-  if (loading) {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center">
-        <Spinner />
-      </div>
-    );
-  }
+  const isPaginationLoading = loading && transactions.length > 0;
 
   return (
     <div
@@ -257,33 +251,14 @@ export default function HistoryPage() {
       </section>
 
       {/* Quick Stats */}
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
+      <section className="grid grid-cols-1 gap-5 md:grid-cols-2">
         {isInitialLoading ? (
           <>
-            <StatCardSkeleton />
             <StatCardSkeleton />
             <StatCardSkeleton />
           </>
         ) : (
           <>
-            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-[#6b7280]">Current Page</p>
-                  <p className="mt-3 text-3xl font-extrabold tracking-tight text-[#111827]">
-                    {pagination.currentPage}
-                  </p>
-                  <p className="mt-2 text-sm text-[#6b7280]">
-                    Browsing paginated transaction records
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-[#eef2ff] p-3">
-                  <ReceiptText className="h-5 w-5 text-[#4a5ff7]" />
-                </div>
-              </div>
-            </Card>
-
             <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
               <div className="flex items-start justify-between">
                 <div>
@@ -296,29 +271,29 @@ export default function HistoryPage() {
                   </p>
                 </div>
 
-            <div className="rounded-2xl bg-[#eef2ff] p-3">
-              <Wallet className="h-5 w-5 text-[#4a5ff7]" />
-            </div>
-          </div>
-        </Card>
+                <div className="rounded-2xl bg-[#eef2ff] p-3">
+                  <Wallet className="h-5 w-5 text-[#4a5ff7]" />
+                </div>
+              </div>
+            </Card>
 
-        <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-[#6b7280]">Total Records</p>
-              <p className="mt-3 text-3xl font-extrabold tracking-tight text-[#111827]">
-                {pagination.total}
-              </p>
-              <p className="mt-2 text-sm text-[#6b7280]">
-                Total transactions available from the API
-              </p>
-            </div>
+            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-[#6b7280]">All Time Records</p>
+                  <p className="mt-3 text-3xl font-extrabold tracking-tight text-[#111827]">
+                    {pagination.total}
+                  </p>
+                  <p className="mt-2 text-sm text-[#6b7280]">
+                    Total transactions in your account
+                  </p>
+                </div>
 
-            <div className="rounded-2xl bg-[#eef2ff] p-3">
-              <CreditCard className="h-5 w-5 text-[#4a5ff7]" />
-            </div>
-          </div>
-        </Card>
+                <div className="rounded-2xl bg-[#eef2ff] p-3">
+                  <CreditCard className="h-5 w-5 text-[#4a5ff7]" />
+                </div>
+              </div>
+            </Card>
           </>
         )}
       </section>
@@ -374,6 +349,7 @@ export default function HistoryPage() {
                 options={[
                   { value: '', label: 'All Statuses' },
                   { value: 'success', label: 'Success' },
+                  { value: 'completed', label: 'Completed' },
                   { value: 'pending', label: 'Pending' },
                   { value: 'failed', label: 'Failed' },
                 ]}
@@ -526,7 +502,12 @@ export default function HistoryPage() {
                       </td>
 
                       <td className="px-6 py-4 text-sm capitalize text-[#111827]">
-                        {transaction.metadata?.product_name || transaction.metadata?.service_type || '—'}
+                        {transaction.metadata?.product_name || transaction.metadata?.service_type || (() => {
+                          const type = transaction.transaction_type || transaction.type;
+                          if (type === 'Wallet Funding' || type === 'wallet_topup') return 'Wallet Funding';
+                          if (type === 'Airtime Conversion' || type === 'airtime_conversion') return 'Airtime Conversion';
+                          return '—';
+                        })()}
                       </td>
 
                       <td className="px-6 py-4 text-sm text-[#6b7280]">
@@ -561,7 +542,12 @@ export default function HistoryPage() {
                         {transaction.transaction_type || transaction.type || 'Transaction'}
                       </p>
                       <p className="mt-1 text-sm text-[#6b7280]">
-                        {transaction.metadata?.product_name || transaction.metadata?.service_type || 'Service transaction'}
+                        {transaction.metadata?.product_name || transaction.metadata?.service_type || (() => {
+                          const type = transaction.transaction_type || transaction.type;
+                          if (type === 'Wallet Funding' || type === 'wallet_topup') return 'Wallet Funding';
+                          if (type === 'Airtime Conversion' || type === 'airtime_conversion') return 'Airtime Conversion';
+                          return 'Service transaction';
+                        })()}
                       </p>
                     </div>
 
@@ -609,22 +595,16 @@ export default function HistoryPage() {
       <div className="flex flex-col gap-4 rounded-[24px] border border-[#e5e7eb] bg-white px-6 py-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-[#6b7280]">
-            <span className="font-semibold text-[#111827]">{transactions.length}</span> transactions shown
-            {pagination.total > 0 && (
-              <>
-                {' '}· Page{' '}
-                <span className="font-semibold text-[#111827]">{pagination.currentPage}</span>{' '}
-                of <span className="font-semibold text-[#111827]">{pagination.lastPage}</span>
-                {' '}· Total: <span className="font-semibold text-[#111827]">{pagination.total}</span> transactions
-              </>
-            )}
+            Showing <span className="font-semibold text-[#111827]">{(pagination.currentPage - 1) * pagination.perPage + 1}</span> to{' '}
+            <span className="font-semibold text-[#111827]">{Math.min(pagination.currentPage * pagination.perPage, pagination.total)}</span> of{' '}
+            <span className="font-semibold text-[#111827]">{pagination.total}</span> transactions
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
               variant="outline"
-              disabled={pagination.currentPage <= 1 || loading}
+              disabled={pagination.currentPage <= 1 || isPaginationLoading}
               onClick={() => setPage(1)}
               className="h-10 rounded-lg border-[#d1d5db] px-3 text-sm"
               title="Go to first page"
@@ -635,33 +615,47 @@ export default function HistoryPage() {
             <Button
               type="button"
               variant="outline"
-              disabled={pagination.currentPage <= 1 || loading}
+              disabled={pagination.currentPage <= 1 || isPaginationLoading}
               onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
               className="h-10 rounded-lg border-[#d1d5db] px-3"
             >
               <ChevronLeft size={16} />
             </Button>
 
-            <div className="flex items-center gap-2 rounded-lg bg-[#f8fafc] px-3 py-2">
-              <input
-                type="number"
-                min="1"
-                max={pagination.lastPage}
-                value={pagination.currentPage}
-                onChange={(e) => {
-                  const newPage = Math.max(1, Math.min(parseInt(e.target.value) || 1, pagination.lastPage));
-                  setPage(newPage);
-                }}
-                disabled={loading}
-                className="w-12 bg-transparent text-center text-sm font-semibold text-[#111827] outline-none"
-              />
-              <span className="text-sm text-[#6b7280]">/ {pagination.lastPage}</span>
+            {/* Page indicators */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(pagination.lastPage, 5) }, (_, i) => {
+                let pageNum;
+                if (pagination.lastPage <= 5) {
+                  pageNum = i + 1;
+                } else if (pagination.currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (pagination.currentPage >= pagination.lastPage - 2) {
+                  pageNum = pagination.lastPage - 4 + i;
+                } else {
+                  pageNum = pagination.currentPage - 2 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setPage(pageNum)}
+                    disabled={isPaginationLoading}
+                    className={`inline-flex items-center justify-center w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
+                      pageNum === pagination.currentPage
+                        ? 'bg-[#4a5ff7] text-white'
+                        : 'border border-[#d1d5db] bg-white text-[#374151] hover:bg-[#f9fafb]'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
             </div>
 
             <Button
               type="button"
               variant="outline"
-              disabled={pagination.currentPage >= pagination.lastPage || loading}
+              disabled={pagination.currentPage >= pagination.lastPage || isPaginationLoading}
               onClick={() => setPage((prev) => Math.min(prev + 1, pagination.lastPage))}
               className="h-10 rounded-lg border-[#d1d5db] px-3"
             >
@@ -671,7 +665,7 @@ export default function HistoryPage() {
             <Button
               type="button"
               variant="outline"
-              disabled={pagination.currentPage >= pagination.lastPage || loading}
+              disabled={pagination.currentPage >= pagination.lastPage || isPaginationLoading}
               onClick={() => setPage(pagination.lastPage)}
               className="h-10 rounded-lg border-[#d1d5db] px-3 text-sm"
               title="Go to last page"
@@ -681,7 +675,7 @@ export default function HistoryPage() {
           </div>
         </div>
 
-        {loading && (
+        {isPaginationLoading && (
           <div className="flex items-center gap-2 text-sm text-[#aab9f8]">
             <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[#e5e7eb] border-t-[#aab9f8]" />
             Loading transactions...

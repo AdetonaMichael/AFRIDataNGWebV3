@@ -267,27 +267,10 @@ export default function BillsPage() {
           font-family: 'Plus Jakarta Sans', sans-serif;
         }
       `}</style>
-      {/* Header Section */}
-      <section className="relative overflow-hidden rounded-[30px] border border-[#e5e7eb] bg-[#0b1220] px-6 py-8 sm:px-8 sm:py-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(74,95,247,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.06),transparent_24%)]" />
-
-        <div className="relative z-10">
-          <span className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#c7d2fe]">
-            Electricity Bill
-          </span>
-
-          <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-            Pay Electricity Bill
-          </h1>
-
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-[#cbd5e1] sm:text-base">
-            Select your provider, verify your meter, and pay instantly. We support all major electricity distribution companies in Nigeria.
-          </p>
-        </div>
-      </section>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 gap-8">
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
+        <div className="xl:col-span-2 space-y-8">
         {/* Step 1: Select Provider */}
         {step === 'provider' && (
           <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-8">
@@ -728,6 +711,84 @@ export default function BillsPage() {
             </div>
           </Card>
         )}
+        </div>
+
+        {/* Sidebar Summary */}
+        <div>
+          <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] xl:sticky xl:top-8">
+            <h3 className="text-lg font-bold tracking-tight text-[#111827]">
+              Payment Details
+            </h3>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                  Provider
+                </p>
+                {selectedProvider ? (
+                  <p className="mt-1 text-sm font-semibold text-[#111827]">
+                    {selectedProvider.name}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-[#9ca3af]">Not selected</p>
+                )}
+              </div>
+
+              <div className="border-t border-[#e5e7eb] pt-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                  Meter Type
+                </p>
+                {paymentType ? (
+                  <p className="mt-1 text-sm font-semibold text-[#111827]">
+                    {paymentType}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-[#9ca3af]">Not selected</p>
+                )}
+              </div>
+
+              {meterNumber && (
+                <div className="border-t border-[#e5e7eb] pt-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Meter Number
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[#111827]">
+                    {meterNumber}
+                  </p>
+                </div>
+              )}
+
+              {amount && (
+                <div className="border-t border-[#e5e7eb] pt-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Amount
+                  </p>
+                  <p className="mt-1 text-lg font-bold text-[#4a5ff7]">
+                    ₦{parseInt(amount).toLocaleString()}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <Button
+              fullWidth
+              disabled={!selectedProvider || step === 'payment' && (!amount.trim() || !phone.trim() || !email.trim())}
+              className="mt-8 h-12 rounded-xl text-base font-semibold"
+              onClick={() => {
+                if (step === 'provider' && selectedProvider) setStep('payment-type');
+                else if (step === 'payment-type' && meterNumber) setStep('meter');
+                else if (step === 'meter' && verifiedCustomer) setStep('payment');
+              }}
+            >
+              Continue
+              <ChevronRight className="ml-2" size={18} />
+            </Button>
+
+            <p className="mt-4 text-center text-xs text-[#6b7280]">
+              Step {step === 'provider' ? 1 : step === 'payment-type' ? 2 : step === 'meter' ? 3 : 4} of 4
+            </p>
+          </Card>
+        </div>
       </div>
 
       {/* PIN Verification Modal */}

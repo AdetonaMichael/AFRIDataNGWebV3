@@ -147,9 +147,8 @@ export const Topbar: React.FC<TopbarProps> = ({
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-[#111827]">
-                          {user.first_name} {user.last_name}
+                          {user.first_name}
                         </p>
-                        <p className="text-xs text-[#6b7280]">{user.email}</p>
                       </div>
                     </div>
 

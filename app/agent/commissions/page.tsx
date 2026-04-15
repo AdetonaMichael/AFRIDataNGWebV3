@@ -64,7 +64,7 @@ export default function AgentCommissionsPage() {
   );
 
   const getStatusVariant = (status: string) => {
-    return status === 'paid' ? 'success' : 'warning';
+    return (status === 'paid' || status === 'success' || status === 'completed') ? 'success' : 'warning';
   };
 
   if (loading) {

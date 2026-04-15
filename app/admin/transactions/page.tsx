@@ -71,6 +71,7 @@ export default function AdminTransactionsPage() {
   const getStatusVariant = (status: string): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
     switch (status) {
       case 'completed':
+      case 'success':
         return 'success';
       case 'pending':
         return 'warning';
@@ -115,6 +116,7 @@ export default function AdminTransactionsPage() {
           >
             <option value="all">All Status</option>
             <option value="completed">Completed</option>
+            <option value="success">Success</option>
             <option value="pending">Pending</option>
             <option value="failed">Failed</option>
           </select>

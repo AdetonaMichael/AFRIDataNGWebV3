@@ -8,6 +8,10 @@ import {
   CreditCard,
   TrendingUp,
   Wallet,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  ChevronLeft,
 } from 'lucide-react';
 
 import { Card } from '@/components/shared/Card';
@@ -15,6 +19,7 @@ import { Badge } from '@/components/shared/Badge';
 import { Spinner } from '@/components/shared/Spinner';
 import { walletService } from '@/services/wallet.service';
 import { transactionService } from '@/services/transaction.service';
+import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency, formatRelativeTime } from '@/utils/format.utils';
 import { TRANSACTION_STATUSES } from '@/utils/constants';
 
@@ -26,11 +31,31 @@ type WalletData = {
 
 type TransactionData = {
   id: string | number;
-  type: string;
+  type?: string;
+  transaction_type?: string;
   provider?: string;
-  amount: number;
+  amount: number | string;
   status: string;
-  created_at: string;
+  created_at?: string;
+  transaction_date?: string;
+  reference?: string;
+  metadata?: Record<string, any>;
+  service_logo?: string | null;
+};
+
+const getTransactionIcon = (type: string, status: string) => {
+  const normalizedType = type?.toLowerCase?.() || '';
+  const normalizedStatus = status?.toLowerCase?.() || '';
+
+  if (normalizedStatus === 'success') {
+    return <CheckCircle className="h-5 w-5 text-green-600" />;
+  } else if (normalizedStatus === 'pending') {
+    return <Clock className="h-5 w-5 text-amber-500" />;
+  } else if (normalizedStatus === 'failed') {
+    return <AlertCircle className="h-5 w-5 text-red-600" />;
+  }
+
+  return <CreditCard className="h-5 w-5 text-[#4a5ff7]" />;
 };
 
 const quickActions = [
@@ -64,41 +89,29 @@ const quickActions = [
   },
 ];
 
-const getTransactionVisual = (type: string) => {
-  const normalized = type?.toLowerCase?.() || '';
-
-  if (normalized.includes('airtime')) {
-    return 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=300&q=80';
-  }
-
-  if (normalized.includes('data')) {
-    return 'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=300&q=80';
-  }
-
-  if (
-    normalized.includes('electricity') ||
-    normalized.includes('bill') ||
-    normalized.includes('tv')
-  ) {
-    return 'https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=300&q=80';
-  }
-
-  return 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=300&q=80';
-};
-
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    lastPage: 1,
+    total: 0,
+    perPage: 10,
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError(null);
 
         const [walletRes, transactionsRes] = await Promise.all([
           walletService.getBalance(),
-          transactionService.getTransactions({ per_page: 5 }),
+          user?.id ? transactionService.getTransactions(String(user.id), { page: currentPage, per_page: 10 }) : Promise.resolve(null),
         ]);
 
         if (walletRes?.data?.wallet) {
@@ -106,9 +119,19 @@ export default function DashboardPage() {
         }
 
         // Handle transaction response - it has nested structure with data.data
-        if (transactionsRes?.data?.data) {
+        if (transactionsRes && transactionsRes?.data?.data) {
           console.log('[Dashboard] Loaded transactions:', transactionsRes.data.data);
           setTransactions(transactionsRes.data.data);
+          
+          // Update pagination info
+          if (transactionsRes.data.pagination) {
+            setPagination({
+              currentPage: transactionsRes.data.pagination.current_page || currentPage,
+              lastPage: transactionsRes.data.pagination.last_page || 1,
+              total: transactionsRes.data.pagination.total || 0,
+              perPage: transactionsRes.data.pagination.per_page || 10,
+            });
+          }
         } else if (transactionsRes?.data) {
           console.log('[Dashboard] Transaction response:', transactionsRes.data);
           // Fallback in case structure is different
@@ -119,23 +142,26 @@ export default function DashboardPage() {
         } else {
           console.warn('[Dashboard] No transaction data found in response:', transactionsRes);
         }
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        setTransactions([]); // Set empty array on error
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data');
+        setTransactions([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [user?.id, currentPage]);
 
   const monthlyTransactionsCount = useMemo(() => {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
     return transactions.filter((transaction) => {
-      const createdAt = new Date(transaction.created_at);
+      const dateStr = transaction.created_at || transaction.transaction_date;
+      if (!dateStr) return false;
+      const createdAt = new Date(dateStr);
       return (
         createdAt.getMonth() === currentMonth &&
         createdAt.getFullYear() === currentYear
@@ -148,6 +174,16 @@ export default function DashboardPage() {
       (transaction) => transaction.status?.toLowerCase() === 'success'
     ).length;
   }, [transactions]);
+
+  const getTransactionTimestamp = (transaction: TransactionData): string => {
+    const dateStr = transaction.created_at || transaction.transaction_date;
+    if (!dateStr) return 'Unknown';
+    return new Date(dateStr).toLocaleString();
+  };
+
+  const getTransactionTypeLabel = (transaction: TransactionData): string => {
+    return transaction.transaction_type || transaction.type || 'Transaction';
+  };
 
   if (loading) {
     return (
@@ -349,57 +385,150 @@ export default function DashboardPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {transactions.map((transaction) => {
-                const status =
-                  TRANSACTION_STATUSES[
-                    transaction.status as keyof typeof TRANSACTION_STATUSES
-                  ];
+            <>
+              {/* Table Container */}
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-[#e5e7eb] bg-[#f9fafb]">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280] uppercase">Transaction</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280] uppercase">Reference</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280] uppercase">Details</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-[#6b7280] uppercase">Amount</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-[#6b7280] uppercase">Status</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-[#6b7280] uppercase">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map((transaction) => {
+                      const status =
+                        TRANSACTION_STATUSES[
+                          transaction.status as keyof typeof TRANSACTION_STATUSES
+                        ];
+                      const typeLabel = getTransactionTypeLabel(transaction);
+                      const timestamp = getTransactionTimestamp(transaction);
 
-                return (
-                  <div
-                    key={transaction.id}
-                    className="flex flex-col gap-4 rounded-[22px] border border-[#f1f5f9] bg-[#fcfcfd] p-4 transition-colors hover:bg-white sm:flex-row sm:items-center sm:justify-between"
+                      return (
+                        <tr
+                          key={transaction.id}
+                          className="border-b border-[#e5e7eb] transition-colors hover:bg-[#f9fafb]"
+                        >
+                          {/* Transaction Type */}
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-shrink-0">
+                                {getTransactionIcon(typeLabel, transaction.status)}
+                              </div>
+                              <span className="text-sm font-semibold text-[#111827]">
+                                {typeLabel}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Reference */}
+                          <td className="px-4 py-4">
+                            {transaction.reference ? (
+                              <code className="rounded bg-[#eef2ff] px-2 py-1 text-xs font-mono text-[#4a5ff7]">
+                                {transaction.reference}
+                              </code>
+                            ) : (
+                              <span className="text-xs text-[#9ca3af]">—</span>
+                            )}
+                          </td>
+
+                          {/* Details (Service & Phone) */}
+                          <td className="px-4 py-4">
+                            <div className="flex flex-col gap-0.5 text-xs text-[#6b7280]">
+                              {(() => {
+                                const type = transaction.transaction_type || transaction.type;
+                                if (type === 'Wallet Funding' || type === 'wallet_topup') {
+                                  return <span className="capitalize text-[#111827] font-medium">Wallet Funding</span>;
+                                }
+                                if (type === 'Airtime Conversion' || type === 'airtime_conversion') {
+                                  return <span className="capitalize text-[#111827] font-medium">Airtime Conversion</span>;
+                                }
+                                return null;
+                              })()}
+                              {transaction.metadata?.serviceID && (
+                                <span className="capitalize text-[#111827] font-medium">
+                                  {transaction.metadata.serviceID}
+                                </span>
+                              )}
+                              {transaction.metadata?.phone && (
+                                <span>{transaction.metadata.phone}</span>
+                              )}
+                              {!transaction.metadata?.serviceID && !transaction.metadata?.phone && (() => {
+                                const type = transaction.transaction_type || transaction.type;
+                                if (type !== 'Wallet Funding' && type !== 'wallet_topup' && type !== 'Airtime Conversion' && type !== 'airtime_conversion') {
+                                  return <span className="text-[#9ca3af]">—</span>;
+                                }
+                                return null;
+                              })()}
+                            </div>
+                          </td>
+
+                          {/* Amount */}
+                          <td className="px-4 py-4 text-right">
+                            <span className="text-sm font-bold text-[#111827]">
+                              {typeof transaction.amount === 'string'
+                                ? formatCurrency(parseFloat(transaction.amount), wallet?.currency)
+                                : formatCurrency(transaction.amount, wallet?.currency)}
+                            </span>
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-4 py-4 text-center">
+                            <Badge variant={status?.color as any} size="sm">
+                              {status?.label || transaction.status}
+                            </Badge>
+                          </td>
+
+                          {/* Date */}
+                          <td className="px-4 py-4 text-right">
+                            <span className="text-xs text-[#6b7280]">
+                              {formatRelativeTime(timestamp)}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="mt-6 flex items-center justify-between border-t border-[#e5e7eb] pt-6">
+                <div className="text-sm text-[#6b7280]">
+                  Showing <span className="font-semibold text-[#111827]">{transactions.length > 0 ? 1 : 0}</span> to{' '}
+                  <span className="font-semibold text-[#111827]">{transactions.length}</span> of{' '}
+                  <span className="font-semibold text-[#111827]">{pagination.total}</span> transactions on this page
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="inline-flex items-center gap-2 rounded-lg border border-[#d1d5db] bg-white px-3 py-2 text-sm font-medium text-[#374151] transition-colors hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <div className="flex min-w-0 items-center gap-4">
-                      <div
-                        className="h-14 w-14 flex-shrink-0 rounded-2xl bg-cover bg-center"
-                        style={{
-                          backgroundImage: `url(${getTransactionVisual(transaction.type)})`,
-                        }}
-                      />
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </button>
 
-                      <div className="min-w-0">
-                        <p className="truncate text-base font-semibold capitalize text-[#111827]">
-                          {transaction.type.replace(/_/g, ' ')}
-                        </p>
-
-                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[#6b7280]">
-                          <span>{transaction.provider || 'Service transaction'}</span>
-                          <span className="hidden sm:inline">•</span>
-                          <span>{formatRelativeTime(transaction.created_at)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-4 sm:justify-end">
-                      <div className="text-left sm:text-right">
-                        <p className="text-base font-bold text-[#111827]">
-                          -{formatCurrency(transaction.amount, wallet?.currency)}
-                        </p>
-                        <p className="mt-1 text-xs text-[#9ca3af]">
-                          {new Date(transaction.created_at).toLocaleString()}
-                        </p>
-                      </div>
-
-                      <Badge variant={status?.color as any} size="sm">
-                        {status?.label || transaction.status}
-                      </Badge>
-                    </div>
+                  <div className="flex items-center gap-1 px-2">
+                    <span className="text-sm font-medium text-[#111827]">Page {currentPage}</span>
                   </div>
-                );
-              })}
-            </div>
+
+                  <button
+                    onClick={() => setCurrentPage(Math.min(pagination.lastPage, currentPage + 1))}
+                    disabled={currentPage === pagination.lastPage}
+                    className="inline-flex items-center gap-2 rounded-lg border border-[#d1d5db] bg-white px-3 py-2 text-sm font-medium text-[#374151] transition-colors hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </Card>
       </section>
