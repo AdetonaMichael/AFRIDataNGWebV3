@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -24,11 +24,6 @@ export const metadata: Metadata = {
   robots: "index, follow",
   alternates: {
     canonical: "https://api.afridata.remonode.com",
-  },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 5,
   },
   manifest: "/manifest.json",
   icons: {
@@ -95,6 +90,12 @@ export const metadata: Metadata = {
     email: false,
     address: false,
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({
