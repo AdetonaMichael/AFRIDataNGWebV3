@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { safeGetItem, safeSetItem } from '@/utils/safe-storage.utils';
 
 interface Toast {
   id: string;
@@ -104,7 +105,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
   theme: 'light',
   setTheme: (theme) => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('theme', theme);
+      safeSetItem('theme', theme);
     }
     set({ theme });
   },

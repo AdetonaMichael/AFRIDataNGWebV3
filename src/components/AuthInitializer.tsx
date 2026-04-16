@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { userService } from '@/services/auth.service';
+import { safeGetItem } from '@/utils/safe-storage.utils';
 
 /**
  * AuthInitializer Component
@@ -13,7 +14,7 @@ import { userService } from '@/services/auth.service';
  * 3. Restore user state to Zustand store
  * 4. Clear invalid tokens
  * 
- * Uses proper hydration guards to prevent server/client mismatch errors
+ * Uses proper hydration guards and safe storage access for mobile compatibility
  */
 export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { setUser, setIsLoading, logout } = useAuthStore();
@@ -31,7 +32,7 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
     const initializeAuth = async () => {
       try {
         setIsLoading(true);
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const token = typeof window !== 'undefined' ? safeGetItem('token') : null;
 
         if (token) {
           console.log('[AuthInitializer] Found token in localStorage, verifying...');

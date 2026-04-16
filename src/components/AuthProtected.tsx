@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { Spinner } from '@/components/shared/Spinner';
+import { debugError } from '@/utils/debug.utils';
 
 interface AuthProtectedProps {
   children: React.ReactNode;
@@ -27,29 +28,40 @@ export const AuthProtected: React.FC<AuthProtectedProps> = ({
 }) => {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    // Wait for auth to be initialized (user is set or null)
-    if (user === undefined) return;
+    setIsMounted(true);
+  }, []);
 
-    if (requireAuth) {
-      // Page requires authentication
-      if (!isAuthenticated) {
-        console.log('[AuthProtected] User not authenticated, redirecting to login');
-        router.replace('/auth/login');
+  useEffect(() => {
+    if (!isMounted) return;
+
+    try {
+      // Wait for auth to be initialized (user is set or null)
+      if (user === undefined) return;
+
+      if (requireAuth) {
+        // Page requires authentication
+        if (!isAuthenticated) {
+          console.log('[AuthProtected] User not authenticated, redirecting to login');
+          router.replace('/auth/login');
+        }
+      } else {
+        // Page requires NO authentication (auth pages)
+        if (isAuthenticated) {
+          console.log('[AuthProtected] User is authenticated, redirecting from auth page to dashboard');
+          router.replace('/dashboard');
+        }
       }
-    } else {
-      // Page requires NO authentication (auth pages)
-      if (isAuthenticated) {
-        console.log('[AuthProtected] User is authenticated, redirecting from auth page to dashboard');
-        router.replace('/dashboard');
-      }
+    } catch (error: any) {
+      debugError('[AuthProtected] Error during auth check:', error);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, requireAuth]);
+  }, [isAuthenticated, requireAuth, isMounted]);
 
   // If authentication requirement not met, show loading
-  if (user === undefined) {
+  if (!isMounted || user === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <Spinner />

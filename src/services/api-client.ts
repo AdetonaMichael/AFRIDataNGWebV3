@@ -6,6 +6,7 @@ import {
   storeIdempotencyKey,
   clearIdempotencyKey,
 } from '@/utils/idempotency.utils';
+import { safeGetItem, safeSetItem, safeRemoveItem } from '@/utils/safe-storage.utils';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.africadatang.com/api/v1';
 
@@ -232,24 +233,24 @@ class ApiClient {
   // Token management
   private getToken(): string | null {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem('token');
+    return safeGetItem('token');
   }
 
   private clearToken(): void {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
+      safeRemoveItem('token');
     }
   }
 
   private setAccessToken(accessToken: string): void {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('token', accessToken);
+      safeSetItem('token', accessToken);
     }
   }
 
   private setRefreshToken(refreshToken: string): void {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('refreshToken', refreshToken);
+      safeSetItem('refreshToken', refreshToken);
     }
   }
 

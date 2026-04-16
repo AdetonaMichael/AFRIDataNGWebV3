@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { User, AuthResponse } from '@/types/api.types';
+import { safeGetItem, safeSetItem, safeRemoveItem } from '@/utils/safe-storage.utils';
 
 interface PINStatus {
   has_pin: boolean;
@@ -27,12 +28,38 @@ interface AuthStore {
   reset: () => void;
 }
 
-// Create storage lazily only on client side to prevent hydration mismatches
+// Create storage with safe fallback for private mode/mobile Safari
 const getStorage = () => {
   if (typeof window === 'undefined') {
     return undefined;
   }
-  return createJSONStorage(() => localStorage);
+  
+  // Use safe storage wrapper that handles mobile Safari private mode
+  return createJSONStorage(() => ({
+    getItem: (key: string) => {
+      try {
+        const value = safeGetItem(key);
+        return value;
+      } catch (e) {
+        console.error('[AuthStore Storage] Error getting item:', e);
+        return null;
+      }
+    },
+    setItem: (key: string, value: string) => {
+      try {
+        safeSetItem(key, value);
+      } catch (e) {
+        console.error('[AuthStore Storage] Error setting item:', e);
+      }
+    },
+    removeItem: (key: string) => {
+      try {
+        safeRemoveItem(key);
+      } catch (e) {
+        console.error('[AuthStore Storage] Error removing item:', e);
+      }
+    },
+  }));
 };
 
 export const useAuthStore = create<AuthStore>()(
@@ -57,7 +84,7 @@ export const useAuthStore = create<AuthStore>()(
 
       setAuthToken: (token) => {
         if (typeof window !== 'undefined') {
-          localStorage.setItem('token', token);
+          safeSetItem('token', token);
         }
       },
 
@@ -71,9 +98,9 @@ export const useAuthStore = create<AuthStore>()(
 
       logout: () => {
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('token');
+          safeRemoveItem('token');
           // Clear all auth-related localStorage keys
-          localStorage.removeItem('auth-store');
+          safeRemoveItem('auth-store');
         }
         set({
           user: null,
