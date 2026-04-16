@@ -29,10 +29,18 @@ export const Topbar: React.FC<TopbarProps> = ({
   const router = useRouter();
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Ensure component is mounted before rendering interactive elements
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Close menu when clicking outside
   useEffect(() => {
+    if (!isMounted) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false);
@@ -43,7 +51,7 @@ export const Topbar: React.FC<TopbarProps> = ({
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, []);
+  }, [isMounted]);
 
   const getRoleColor = (role?: string) => {
     switch (role?.toLowerCase()) {

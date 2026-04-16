@@ -17,6 +17,8 @@ import { useAlert } from '@/hooks/useAlert';
  * 1. Show PIN setup modal (blocking)
  * 2. User must complete PIN setup before accessing the dashboard
  * 3. Update auth store PIN status after successful setup
+ * 
+ * Includes proper hydration guards to prevent server/client mismatches
  */
 interface PINSetupEnforcerProps {
   showForNewUsers?: boolean; // Show PIN setup immediately for newly registered users
@@ -28,10 +30,16 @@ export function PINSetupEnforcer({ showForNewUsers = true }: PINSetupEnforcerPro
   const { success, error: alertError } = useAlert();
   const [showPINModal, setShowPINModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Ensure component only operates after hydration
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Check PIN status on component mount
   useEffect(() => {
-    if (!user) return;
+    if (!isMounted || !user) return;
 
     // If PIN status not set in store, it means either:
     // 1. User just logged in (PIN status should be from login response)
@@ -42,7 +50,7 @@ export function PINSetupEnforcer({ showForNewUsers = true }: PINSetupEnforcerPro
       // User doesn't have PIN, show setup modal
       setShowPINModal(true);
     }
-  }, [user]);
+  }, [user, isMounted]);
 
   // Check current PIN status from backend
   const checkPinStatus = async () => {

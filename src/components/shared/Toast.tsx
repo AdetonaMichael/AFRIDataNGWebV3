@@ -1,11 +1,17 @@
 'use client';
 
 import { useUIStore } from '@/store/ui.store';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 
 export const Toast = () => {
   const { toasts, removeToast } = useUIStore();
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Ensure component only renders after hydration
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const getBackgroundColor = (type: string) => {
     switch (type) {
@@ -36,6 +42,11 @@ export const Toast = () => {
         return 'text-gray-800';
     }
   };
+
+  // Don't render until after hydration to prevent mismatch
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <div className="fixed top-4 right-4 z-50 space-y-2 pointer-events-none">

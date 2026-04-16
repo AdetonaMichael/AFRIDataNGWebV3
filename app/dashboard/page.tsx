@@ -194,24 +194,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div
-      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-      className="space-y-8"
-    >
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        * {
-          font-family: 'Plus Jakarta Sans', sans-serif;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
-
+    <div className="space-y-8">
       {/* Stats */}
       <section className="flex overflow-x-auto gap-5 pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-3 md:overflow-x-visible">
         <Card className="min-w-full md:min-w-auto rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] snap-start md:snap-start">

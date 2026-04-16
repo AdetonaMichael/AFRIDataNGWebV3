@@ -11,10 +11,18 @@ export const RoleSwitcher: React.FC = () => {
   const { user } = useAuth();
   const { activeRole, setActiveRole } = useAuthStore();
   const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Ensure component is mounted before rendering interactive elements
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Close menu when clicking outside
   useEffect(() => {
+    if (!isMounted) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowRoleMenu(false);
@@ -25,7 +33,7 @@ export const RoleSwitcher: React.FC = () => {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, []);
+  }, [isMounted]);
 
   // Only show if user has multiple roles
   if (!user || !user.roles || user.roles.length <= 1) {

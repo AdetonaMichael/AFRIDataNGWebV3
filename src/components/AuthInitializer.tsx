@@ -12,12 +12,22 @@ import { userService } from '@/services/auth.service';
  * 2. Verify the token is still valid by fetching user profile
  * 3. Restore user state to Zustand store
  * 4. Clear invalid tokens
+ * 
+ * Uses proper hydration guards to prevent server/client mismatch errors
  */
 export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { setUser, setIsLoading, logout } = useAuthStore();
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Ensure component only initializes on client after hydration
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
+    if (!isMounted) return;
+
     const initializeAuth = async () => {
       try {
         setIsLoading(true);
@@ -54,10 +64,10 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     initializeAuth();
-  }, [setUser, setIsLoading, logout]);
+  }, [isMounted, setUser, setIsLoading, logout]);
 
-  // Don't render children until auth is initialized to prevent flash
-  if (!isInitialized) {
+  // Prevent rendering until hydration is complete and auth is initialized
+  if (!isMounted || !isInitialized) {
     return <div className="min-h-screen bg-white" />;
   }
 

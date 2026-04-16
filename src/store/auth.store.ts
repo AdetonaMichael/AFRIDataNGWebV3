@@ -27,7 +27,13 @@ interface AuthStore {
   reset: () => void;
 }
 
-const storage = typeof window !== 'undefined' ? createJSONStorage(() => localStorage) : undefined;
+// Create storage lazily only on client side to prevent hydration mismatches
+const getStorage = () => {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+  return createJSONStorage(() => localStorage);
+};
 
 export const useAuthStore = create<AuthStore>()(
   persist(
@@ -91,7 +97,7 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'auth-store',
-      storage: storage,
+      storage: getStorage(),
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
