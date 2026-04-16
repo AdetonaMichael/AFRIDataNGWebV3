@@ -1,6 +1,7 @@
 'use client';
 
 import React, { ReactNode } from 'react';
+import { trackError, getAllErrorLogs, getCriticalErrors, exportErrorLogs } from '@/utils/error-tracking.utils';
 
 interface Props {
   children: ReactNode;
@@ -33,27 +34,19 @@ export class ErrorBoundary extends React.Component<Props, State> {
     console.error('[ErrorBoundary] Error stack:', error?.stack);
     console.error('[ErrorBoundary] Component stack:', errorInfo?.componentStack);
     
-    // Also log to localStorage for mobile inspection
-    try {
-      if (typeof window !== 'undefined') {
-        const errorLog = {
-          timestamp: new Date().toISOString(),
-          message: error?.message,
-          stack: error?.stack,
-          componentStack: errorInfo?.componentStack,
-          userAgent: navigator.userAgent,
-        };
-        const logs = JSON.parse(localStorage.getItem('app_error_logs') || '[]');
-        logs.push(errorLog);
-        if (logs.length > 10) logs.splice(0, logs.length - 10);
-        localStorage.setItem('app_error_logs', JSON.stringify(logs));
-      }
-    } catch (e) {
-      console.warn('[ErrorBoundary] Failed to log error:', e);
-    }
-    
-    // You could also log to an error tracking service here
-    // e.g., Sentry, LogRocket, etc.
+    // Track error with comprehensive tracking system
+    trackError({
+      type: 'render_error',
+      severity: 'critical',
+      location: 'ErrorBoundary - React Render Error',
+      errorMessage: error?.message || 'Unknown React error',
+      stack: error?.stack,
+      context: {
+        componentStack: errorInfo?.componentStack,
+        errorInfo,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      },
+    });
   }
 
   render() {
@@ -84,13 +77,48 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <p className="text-gray-600 text-sm mb-4">
               We encountered an unexpected error. Please try refreshing the page.
             </p>
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-left text-xs text-red-800 overflow-auto max-h-40">
-              <p className="font-mono font-bold mb-2">Error Details:</p>
-              <p className="break-words">{this.state.error?.message || 'Unknown error'}</p>
+            
+            {/* Error Details */}
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-left text-xs text-red-800 overflow-auto max-h-48">
+              <p className="font-mono font-bold mb-2">🔴 Error Details:</p>
+              <p className="break-words font-semibold text-red-900">{this.state.error?.message || 'Unknown error'}</p>
               {this.state.error?.stack && (
-                <p className="text-xs text-gray-600 mt-2 font-mono">{this.state.error.stack}</p>
+                <div className="mt-3 p-2 bg-red-100 rounded text-xs font-mono whitespace-pre-wrap break-words">
+                  {this.state.error.stack.split('\n').slice(0, 5).join('\n')}
+                </div>
               )}
             </div>
+
+            {/* All Tracked Errors */}
+            <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded text-left text-xs">
+              <p className="font-mono font-bold mb-2 text-orange-900">🟠 Error History ({getAllErrorLogs().length} total):</p>
+              <div className="max-h-32 overflow-y-auto space-y-1">
+                {getCriticalErrors().slice(-5).map((log) => (
+                  <div key={log.id} className="p-2 bg-white rounded border border-orange-100 text-xs">
+                    <div className="font-semibold text-orange-900">{log.location}</div>
+                    <div className="text-orange-700 break-words">{log.errorMessage}</div>
+                    {log.errorCode && <div className="text-xs text-gray-600">Code: {log.errorCode}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Export Button */}
+            <button
+              onClick={() => {
+                const data = exportErrorLogs();
+                try {
+                  navigator.clipboard.writeText(data);
+                  alert('Error logs copied to clipboard! Share with support.');
+                } catch (e) {
+                  console.log('Exported logs:', data);
+                  alert('Export completed. Check console logs.');
+                }
+              }}
+              className="w-full mt-3 px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors text-xs"
+            >
+              📋 Copy Error Logs
+            </button>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => window.location.reload()}

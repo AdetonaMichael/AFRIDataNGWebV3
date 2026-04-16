@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getDebugLogs, clearDebugLogs, printDebugLogs, exportDebugLogs } from '@/utils/debug.utils';
+import { getAllErrorLogs, getCriticalErrors, clearErrorLogs, exportErrorLogs } from '@/utils/error-tracking.utils';
 import { useAuthStore } from '@/store/auth.store';
 
 /**
@@ -18,12 +19,7 @@ export const DebugPanel = () => {
   useEffect(() => {
     const refreshLogs = () => {
       setLogs(getDebugLogs());
-      try {
-        const errors = JSON.parse(localStorage.getItem('app_error_logs') || '[]');
-        setErrorLogs(errors);
-      } catch (e) {
-        // ignore
-      }
+      setErrorLogs(getAllErrorLogs());
     };
 
     refreshLogs();
@@ -97,29 +93,35 @@ export const DebugPanel = () => {
       </div>
 
       {/* Actions */}
-      <div className="bg-gray-800 px-4 py-3 border-t border-gray-700 flex gap-2">
+      <div className="bg-gray-800 px-4 py-3 border-t border-gray-700 flex gap-2 flex-wrap">
         <button
           onClick={() => {
             printDebugLogs();
             alert('Logs printed to console');
           }}
-          className="flex-1 px-2 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs"
+          className="flex-1 min-w-12 px-2 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs"
         >
           Print
         </button>
         <button
           onClick={() => {
-            const data = JSON.stringify({
-              errors: errorLogs,
-              debugLogs: logs,
-              userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-              timestamp: new Date().toISOString(),
-            }, null, 2);
-            navigator.clipboard.writeText(data).then(() => alert('Copied to clipboard'));
+            const data = exportErrorLogs();
+            navigator.clipboard.writeText(data).catch(() => console.log(data));
+            alert('Error logs copied!');
           }}
-          className="flex-1 px-2 py-1 bg-orange-600 hover:bg-orange-700 rounded text-xs"
+          className="flex-1 min-w-12 px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
         >
-          Copy
+          Copy Errors
+        </button>
+        <button
+          onClick={() => {
+            clearErrorLogs();
+            setErrorLogs([]);
+            alert('Error logs cleared');
+          }}
+          className="flex-1 min-w-12 px-2 py-1 bg-red-800 hover:bg-red-900 rounded text-xs"
+        >
+          Clear Errors
         </button>
         <button
           onClick={() => {

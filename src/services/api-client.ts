@@ -7,6 +7,7 @@ import {
   clearIdempotencyKey,
 } from '@/utils/idempotency.utils';
 import { safeGetItem, safeSetItem, safeRemoveItem } from '@/utils/safe-storage.utils';
+import { trackApiError } from '@/utils/error-tracking.utils';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.africadatang.com/api/v1';
 
@@ -153,6 +154,7 @@ class ApiClient {
       },
       async (error: AxiosError) => {
         console.error('[ApiClient] ===== RESPONSE ERROR =====');
+        const endpoint = error.config?.url || 'unknown';
         console.error('[ApiClient] Axios error details:', {
           message: error.message,
           code: error.code,
@@ -163,6 +165,13 @@ class ApiClient {
           responseData: error.response?.data,
           responseHeaders: error.response?.headers,
           timestamp: new Date().toISOString(),
+        });
+
+        // Track the API error
+        trackApiError(endpoint, error, {
+          method: error.config?.method?.toUpperCase(),
+          headers: error.config?.headers,
+          data: error.config?.data,
         });
 
         // Handle idempotency-specific errors

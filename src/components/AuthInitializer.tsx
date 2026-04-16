@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { userService } from '@/services/auth.service';
 import { safeGetItem } from '@/utils/safe-storage.utils';
+import { trackAuthError, trackStorageError } from '@/utils/error-tracking.utils';
 
 /**
  * AuthInitializer Component
@@ -35,8 +36,18 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
         setIsLoading(true);
         
         console.log('[AuthInitializer] Checking for token in storage...');
-        const token = typeof window !== 'undefined' ? safeGetItem('token') : null;
-        console.log('[AuthInitializer] Token found:', !!token);
+        let token: string | null = null;
+        
+        try {
+          token = typeof window !== 'undefined' ? safeGetItem('token') : null;
+          console.log('[AuthInitializer] Token found:', !!token);
+        } catch (storageError: any) {
+          console.error('[AuthInitializer] Storage error while getting token:', storageError);
+          trackStorageError('get', 'token', storageError, {
+            step: 'auth_initialization',
+          });
+          token = null;
+        }
 
         if (token) {
           console.log('[AuthInitializer] Found token in localStorage, verifying...');
@@ -53,11 +64,18 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
               setUser(response.data.user);
             } else {
               console.warn('[AuthInitializer] Token invalid or user fetch failed');
+              trackAuthError('profile_fetch', new Error('Invalid response from profile endpoint'), {
+                response,
+              });
               // Token is invalid - clear it
               logout();
             }
           } catch (fetchError: any) {
             console.error('[AuthInitializer] Error fetching user profile:', fetchError);
+            trackAuthError('profile_fetch', fetchError, {
+              endpoint: '/users/profile',
+              message: fetchError?.message,
+            });
             logout();
           }
         } else {
@@ -71,6 +89,9 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
           message: error?.message,
           stack: error?.stack,
           code: error?.code,
+        });
+        trackAuthError('initialization', error, {
+          phase: 'auth_setup',
         });
         // On error, clear auth state
         logout();

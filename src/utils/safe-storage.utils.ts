@@ -4,6 +4,8 @@
  * Returns null/undefined gracefully instead of throwing
  */
 
+import { trackStorageError } from '@/utils/error-tracking.utils';
+
 let _isPrivateMode: boolean | null = null;
 
 /**
@@ -36,11 +38,13 @@ export const safeGetItem = (key: string): string | null => {
       return null;
     }
     if (isPrivateMode()) {
+      console.warn(`[SafeStorage] Browser in private mode, cannot access localStorage for "${key}"`);
       return null;
     }
     return localStorage.getItem(key);
-  } catch (error) {
+  } catch (error: any) {
     console.warn(`[SafeStorage] Failed to get item "${key}":`, error);
+    trackStorageError('get', key, error);
     return null;
   }
 };
@@ -54,12 +58,14 @@ export const safeSetItem = (key: string, value: string): boolean => {
       return false;
     }
     if (isPrivateMode()) {
+      console.warn(`[SafeStorage] Browser in private mode, cannot write to localStorage for "${key}"`);
       return false;
     }
     localStorage.setItem(key, value);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.warn(`[SafeStorage] Failed to set item "${key}":`, error);
+    trackStorageError('set', key, error);
     return false;
   }
 };
@@ -77,8 +83,9 @@ export const safeRemoveItem = (key: string): boolean => {
     }
     localStorage.removeItem(key);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.warn(`[SafeStorage] Failed to remove item "${key}":`, error);
+    trackStorageError('remove', key, error);
     return false;
   }
 };
@@ -96,8 +103,9 @@ export const safeClear = (): boolean => {
     }
     localStorage.clear();
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.warn(`[SafeStorage] Failed to clear storage:`, error);
+    trackStorageError('clear', 'all', error);
     return false;
   }
 };
