@@ -162,7 +162,9 @@ export default function TVPage() {
         };
 
         console.log('[TVPage] Storing form data to session:', dataToStore);
-        sessionStorage.setItem('tvFormData', JSON.stringify(dataToStore));
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('tvFormData', JSON.stringify(dataToStore));
+        }
 
         router.push('/dashboard/tv/review');
       } catch (err) {

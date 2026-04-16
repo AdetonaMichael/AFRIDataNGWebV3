@@ -53,7 +53,7 @@ export default function AgentPerformancePage() {
         </select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="flex overflow-x-auto gap-6 pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 md:overflow-x-visible lg:grid-cols-4">
         {[
           {
             label: 'Sales Volume',
@@ -76,7 +76,7 @@ export default function AgentPerformancePage() {
             subtitle: 'vs last period',
           },
         ].map((metric) => (
-          <Card key={metric.label}>
+          <Card key={metric.label} className="min-w-full md:min-w-auto snap-start md:snap-start">
             <p className="text-gray-600 text-sm font-medium">{metric.label}</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">{metric.value}</p>
             <p className="text-xs text-gray-500 mt-2">{metric.subtitle}</p>

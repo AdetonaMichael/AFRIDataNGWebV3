@@ -287,7 +287,7 @@ export default function AdminAnalyticsPage() {
       </section>
 
       {/* KPI Cards */}
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <section className="flex overflow-x-auto gap-5 pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 md:overflow-x-visible xl:grid-cols-3">
         {statCards.map((metric) => {
           const Icon = metric.icon;
           const isUp = metric.trend === 'up';
@@ -295,7 +295,7 @@ export default function AdminAnalyticsPage() {
           return (
             <Card
               key={metric.label}
-              className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]"
+              className="min-w-full md:min-w-auto rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] snap-start md:snap-start"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -416,8 +416,8 @@ export default function AdminAnalyticsPage() {
       </section>
 
       {/* Top Provider / Top Service / Snapshot */}
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+      <section className="flex overflow-x-auto gap-6 pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:overflow-x-visible xl:grid-cols-3">
+        <Card className="min-w-full md:min-w-auto rounded-[28px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] snap-start md:snap-start">
           <h2 className="text-xl font-bold tracking-tight text-[#111827]">
             Top Provider
           </h2>
@@ -452,7 +452,7 @@ export default function AdminAnalyticsPage() {
           </div>
         </Card>
 
-        <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+        <Card className="min-w-full md:min-w-auto rounded-[28px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] snap-start md:snap-start">
           <h2 className="text-xl font-bold tracking-tight text-[#111827]">
             Top Service
           </h2>
@@ -487,7 +487,7 @@ export default function AdminAnalyticsPage() {
           </div>
         </Card>
 
-        <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+        <Card className="min-w-full md:min-w-auto rounded-[28px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] snap-start md:snap-start">
           <h2 className="text-xl font-bold tracking-tight text-[#111827]">
             Executive Snapshot
           </h2>

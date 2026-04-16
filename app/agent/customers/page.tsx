@@ -75,13 +75,13 @@ export default function AgentCustomersPage() {
         <Button onClick={() => setShowAddModal(true)}>Add Customer</Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="flex overflow-x-auto gap-6 pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-3 md:overflow-x-visible">
         {[
           { label: 'Total Customers', value: customers.length.toString() },
           { label: 'Total Revenue', value: `₦${customers.reduce((sum, c) => sum + c.total_spent, 0).toLocaleString()}` },
           { label: 'Average Transaction', value: `₦${Math.round(customers.reduce((sum, c) => sum + c.total_spent, 0) / customers.reduce((sum, c) => sum + c.transactions, 1)).toLocaleString()}` },
         ].map((stat) => (
-          <Card key={stat.label}>
+          <Card key={stat.label} className="min-w-full md:min-w-auto snap-start md:snap-start">
             <p className="text-gray-600 text-sm font-medium">{stat.label}</p>
             <p className="text-2xl font-bold text-gray-900 mt-2">{stat.value}</p>
           </Card>

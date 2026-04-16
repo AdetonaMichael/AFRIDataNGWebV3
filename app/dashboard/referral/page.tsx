@@ -304,14 +304,14 @@ export default function ReferralPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          <div className="flex overflow-x-auto gap-5 pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-3 md:overflow-x-visible">
             {referrals.tier_benefits.map((tier) => {
               const isCurrent = tier.tier === referrals.referral_tier;
 
               return (
                 <div
                   key={tier.tier}
-                  className={`rounded-[24px] border p-5 transition-all ${getTierStyles(
+                  className={`min-w-full md:min-w-auto rounded-[24px] border p-5 transition-all snap-start md:snap-start ${getTierStyles(
                     tier.tier,
                     referrals.referral_tier
                   )}`}

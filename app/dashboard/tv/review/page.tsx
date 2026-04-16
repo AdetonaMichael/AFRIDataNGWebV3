@@ -58,7 +58,7 @@ export default function TVReviewPage() {
 
   useEffect(() => {
     console.log('[TVReview] Page mounted, checking for form data...');
-    const stored = sessionStorage.getItem('tvFormData');
+    const stored = typeof window !== 'undefined' ? sessionStorage.getItem('tvFormData') : null;
     if (stored) {
       try {
         const data = JSON.parse(stored) as TVFormData;
@@ -172,7 +172,9 @@ export default function TVReviewPage() {
         setTransactionStatus('success');
 
         // Clear stored data
-        sessionStorage.removeItem('tvFormData');
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('tvFormData');
+        }
 
         addToast({
           message: `TV subscription successful! Transaction ID: ${requestId}`,
@@ -369,7 +371,9 @@ export default function TVReviewPage() {
                 {/* Card */}
                 <button
                   onClick={() => setPaymentMethod('card')}
-                  className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                  disabled={true}
+                  title="Coming soon"
+                  className={`w-full p-4 rounded-lg border-2 transition-all text-left opacity-50 cursor-not-allowed ${
                     paymentMethod === 'card'
                       ? 'border-[#a9b7ff] bg-[#f7f8ff]'
                       : 'border-gray-200 hover:border-gray-300'
@@ -396,7 +400,9 @@ export default function TVReviewPage() {
                 {/* Bank Transfer */}
                 <button
                   onClick={() => setPaymentMethod('bank_transfer')}
-                  className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                  disabled={true}
+                  title="Coming soon"
+                  className={`w-full p-4 rounded-lg border-2 transition-all text-left opacity-50 cursor-not-allowed ${
                     paymentMethod === 'bank_transfer'
                       ? 'border-[#a9b7ff] bg-[#f7f8ff]'
                       : 'border-gray-200 hover:border-gray-300'

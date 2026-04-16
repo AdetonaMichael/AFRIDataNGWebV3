@@ -54,7 +54,7 @@ export default function DataReviewPage() {
 
   useEffect(() => {
     console.log('[DataReview] Page mounted, checking for form data...');
-    const savedData = sessionStorage.getItem('dataFormData');
+    const savedData = typeof window !== 'undefined' ? sessionStorage.getItem('dataFormData') : null;
     console.log('[DataReview] Saved data from sessionStorage:', savedData);
 
     if (savedData) {
@@ -161,7 +161,9 @@ export default function DataReviewPage() {
           setTransactionStatus('success');
           setShowPINModal(false);
 
-          sessionStorage.removeItem('dataFormData');
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('dataFormData');
+          }
 
           addToast({
             message: 'Data purchased successfully!',
@@ -263,69 +265,6 @@ export default function DataReviewPage() {
           font-family: 'Plus Jakarta Sans', sans-serif;
         }
       `}</style>
-
-      <section className="relative overflow-hidden rounded-[30px] border border-[#e5e7eb] bg-[#0b1220] px-6 py-8 sm:px-8 sm:py-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(74,95,247,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.06),transparent_24%)]" />
-
-        <div className="relative z-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-2xl">
-            <button
-              type="button"
-              onClick={handleBack}
-              disabled={isProcessing}
-              className={`mb-4 inline-flex items-center gap-2 text-sm font-medium transition ${
-                isProcessing
-                  ? 'cursor-not-allowed text-[#94a3b8] opacity-50'
-                  : 'text-[#cbd5e1] hover:text-white'
-              }`}
-            >
-              <ChevronLeft size={16} />
-              Back to data
-            </button>
-
-            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#c7d2fe]">
-              Transaction Review
-            </span>
-
-            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              Confirm your data purchase
-            </h1>
-
-            <p className="mt-3 max-w-xl text-sm leading-7 text-[#cbd5e1] sm:text-base">
-              Review the transaction details carefully before proceeding to secure
-              payment authorization.
-            </p>
-          </div>
-
-          <div className="grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Provider
-              </p>
-              <p className="mt-3 text-lg font-bold text-white">
-                {formData.providerName.split(' ')[0]}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Amount
-              </p>
-              <p className="mt-3 text-lg font-bold text-white">
-                {formatCurrency(amount)}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Status
-              </p>
-              <p className="mt-3 text-lg font-bold text-white">Pending</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-8 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
@@ -423,28 +362,28 @@ export default function DataReviewPage() {
                   icon: Wallet,
                 },
                 {
-                  value: 'card',
-                  label: 'Debit Card',
-                  description: 'Pay directly with your linked card.',
+                  value: 'others',
+                  label: 'Other Options',
+                  description: 'Pay with other payment options.',
                   icon: CreditCard,
                 },
-                {
-                  value: 'bank_transfer',
-                  label: 'Bank Transfer',
-                  description: 'Use a transfer flow where supported.',
-                  icon: ShieldCheck,
-                },
+         
               ].map((method) => {
                 const Icon = method.icon;
                 const active = paymentMethod === method.value;
+                const isDisabled = method.value !== 'wallet';
 
                 return (
                   <button
                     key={method.value}
                     type="button"
-                    onClick={() => setPaymentMethod(method.value as PaymentMethod)}
+                    disabled={isDisabled}
+                    onClick={() => !isDisabled && setPaymentMethod(method.value as PaymentMethod)}
+                    title={isDisabled ? 'Coming soon' : ''}
                     className={`flex w-full items-start justify-between rounded-[22px] border p-4 text-left transition ${
-                      active
+                      isDisabled
+                        ? 'opacity-50 cursor-not-allowed bg-[#f5f5f5]'
+                        : active
                         ? 'border-[#4a5ff7] bg-[#f7f8ff]'
                         : 'border-[#e5e7eb] bg-white hover:border-[#cfd8ff]'
                     }`}
@@ -484,34 +423,9 @@ export default function DataReviewPage() {
               })}
             </div>
 
-            <div className="mt-6 rounded-[22px] border border-[#dbeafe] bg-[#eff6ff] p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="mt-0.5 h-5 w-5 text-[#2563eb]" />
-                <p className="text-sm leading-6 text-[#1e3a8a]">
-                  You will be asked to verify this transaction with your 4-digit PIN
-                  before payment is processed.
-                </p>
-              </div>
-            </div>
           </Card>
 
-          <Card className="rounded-[28px] border border-[#dbe4ff] bg-[#f8faff] p-6 shadow-[0_10px_35px_rgba(74,95,247,0.06)]">
-            <div className="flex gap-4">
-              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-[#4a5ff7]">
-                <Lock className="text-white" size={20} />
-              </div>
 
-              <div>
-                <h3 className="text-base font-bold text-[#111827]">
-                  Secure payment authorization
-                </h3>
-                <p className="mt-1 text-sm leading-6 text-[#6b7280]">
-                  Your transaction is protected by encrypted request handling and PIN
-                  verification before final processing.
-                </p>
-              </div>
-            </div>
-          </Card>
         </div>
 
         <div>

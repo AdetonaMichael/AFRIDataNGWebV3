@@ -203,59 +203,18 @@ export default function DashboardPage() {
         * {
           font-family: 'Plus Jakarta Sans', sans-serif;
         }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
       `}</style>
 
-      {/* Top Hero */}
-      <section className="relative overflow-hidden rounded-[28px] border border-[#e5e7eb] bg-[#0b1220] p-6 sm:p-8 lg:p-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(74,95,247,0.22),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_24%)]" />
-        <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            
-
-            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              Welcome back
-            </h1>
-
-            <p className="mt-3 max-w-xl text-sm leading-7 text-[#cbd5e1] sm:text-base">
-              Here is a clean overview of your wallet activity, recent transactions,
-              and the fastest actions you may want to take today.
-            </p>
-          </div>
-
-          <div className="grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Wallet Balance
-              </p>
-              <p className="mt-3 text-2xl font-bold text-white">
-                {wallet ? formatCurrency(wallet.balance, wallet.currency) : '₦0.00'}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                This Month
-              </p>
-              <p className="mt-3 text-2xl font-bold text-white">
-                {monthlyTransactionsCount}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Successful
-              </p>
-              <p className="mt-3 text-2xl font-bold text-white">
-                {successfulTransactionsCount}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Stats */}
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
-        <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+      <section className="flex overflow-x-auto gap-5 pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-3 md:overflow-x-visible">
+        <Card className="min-w-full md:min-w-auto rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] snap-start md:snap-start">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-medium text-[#6b7280]">Available Balance</p>
@@ -273,7 +232,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+        <Card className="min-w-full md:min-w-auto rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] snap-start md:snap-start">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-medium text-[#6b7280]">Transactions This Month</p>
@@ -291,7 +250,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+        <Card className="min-w-full md:min-w-auto rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] snap-start md:snap-start">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-medium text-[#6b7280]">Lifetime Spend</p>
@@ -323,9 +282,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="flex overflow-x-auto gap-5 pb-2 snap-x snap-mandatory scrollbar-hide">
           {quickActions.map((action) => (
-            <Link key={action.href} href={action.href} className="group block">
+            <Link key={action.href} href={action.href} className="group block min-w-full sm:min-w-[calc(50%-10px)] xl:min-w-[calc(25%-15px)] snap-start">
               <div className="overflow-hidden rounded-[24px] border border-[#e5e7eb] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.08)]">
                 <div
                   className="relative h-40 w-full bg-cover bg-center"
@@ -386,8 +345,8 @@ export default function DashboardPage() {
             </div>
           ) : (
             <>
-              {/* Table Container */}
-              <div className="overflow-x-auto">
+              {/* Table Container - Hidden on mobile */}
+              <div className="overflow-x-auto hidden md:block">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-[#e5e7eb] bg-[#f9fafb]">
@@ -496,35 +455,91 @@ export default function DashboardPage() {
                 </table>
               </div>
 
+              {/* Mobile cards view */}
+              <div className="space-y-3 md:hidden">
+                {transactions.map((transaction) => {
+                  const status =
+                    TRANSACTION_STATUSES[
+                      transaction.status as keyof typeof TRANSACTION_STATUSES
+                    ];
+                  const typeLabel = getTransactionTypeLabel(transaction);
+                  const timestamp = getTransactionTimestamp(transaction);
+
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="rounded-[18px] border border-[#edf2f7] bg-[#fcfcfd] p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                          <p className="text-sm font-bold text-[#111827]">
+                            {typeLabel}
+                          </p>
+                          <p className="text-xs text-[#6b7280] mt-0.5">
+                            {(() => {
+                              const type = transaction.transaction_type || transaction.type;
+                              if (type === 'Wallet Funding' || type === 'wallet_topup') {
+                                return 'Wallet Funding';
+                              }
+                              if (type === 'Airtime Conversion' || type === 'airtime_conversion') {
+                                return 'Airtime Conversion';
+                              }
+                              return transaction.metadata?.serviceID || '—';
+                            })()}
+                          </p>
+                        </div>
+                        <Badge variant={status?.color as any} size="sm">
+                          {status?.label || transaction.status}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <p className="font-medium text-[#9ca3af] uppercase tracking-wide">Amount</p>
+                          <p className="mt-1 font-bold text-[#111827]">
+                            {typeof transaction.amount === 'string'
+                              ? formatCurrency(parseFloat(transaction.amount), wallet?.currency)
+                              : formatCurrency(transaction.amount, wallet?.currency)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-[#9ca3af] uppercase tracking-wide">Date</p>
+                          <p className="mt-1 text-[#6b7280]">{formatRelativeTime(timestamp)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
               {/* Pagination Controls */}
-              <div className="mt-6 flex items-center justify-between border-t border-[#e5e7eb] pt-6">
-                <div className="text-sm text-[#6b7280]">
+              <div className="mt-6 flex flex-col gap-4 border-t border-[#e5e7eb] pt-6 sm:gap-6">
+                <div className="text-xs sm:text-sm text-[#6b7280]">
                   Showing <span className="font-semibold text-[#111827]">{transactions.length > 0 ? 1 : 0}</span> to{' '}
                   <span className="font-semibold text-[#111827]">{transactions.length}</span> of{' '}
-                  <span className="font-semibold text-[#111827]">{pagination.total}</span> transactions on this page
+                  <span className="font-semibold text-[#111827]">{pagination.total}</span> transactions
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="inline-flex items-center gap-2 rounded-lg border border-[#d1d5db] bg-white px-3 py-2 text-sm font-medium text-[#374151] transition-colors hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-1 sm:gap-2 rounded-lg border border-[#d1d5db] bg-white px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-[#374151] transition-colors hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
+                    <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Previous</span>
                   </button>
 
-                  <div className="flex items-center gap-1 px-2">
-                    <span className="text-sm font-medium text-[#111827]">Page {currentPage}</span>
+                  <div className="flex items-center gap-1 px-1 sm:px-2">
+                    <span className="text-xs sm:text-sm font-medium text-[#111827]">Page {currentPage}/{pagination.lastPage}</span>
                   </div>
 
                   <button
                     onClick={() => setCurrentPage(Math.min(pagination.lastPage, currentPage + 1))}
                     disabled={currentPage === pagination.lastPage}
-                    className="inline-flex items-center gap-2 rounded-lg border border-[#d1d5db] bg-white px-3 py-2 text-sm font-medium text-[#374151] transition-colors hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-1 sm:gap-2 rounded-lg border border-[#d1d5db] bg-white px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-[#374151] transition-colors hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
+                    <span className="hidden sm:inline">Next</span>
+                    <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
                   </button>
                 </div>
               </div>

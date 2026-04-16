@@ -82,13 +82,13 @@ export default function AgentCommissionsPage() {
         <p className="text-gray-600 mt-2">Monitor your earnings and commission status</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="flex overflow-x-auto gap-6 pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-3 md:overflow-x-visible">
         {[
           { label: 'Total Earnings', value: `₦${totalEarnings.toLocaleString()}`, icon: '📈' },
           { label: 'Paid', value: `₦${paidCommissions.toLocaleString()}`, icon: '✓' },
           { label: 'Pending', value: `₦${pendingCommissions.toLocaleString()}`, icon: '⏳' },
         ].map((stat) => (
-          <Card key={stat.label}>
+          <Card key={stat.label} className="min-w-full md:min-w-auto snap-start md:snap-start">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">{stat.label}</p>

@@ -138,7 +138,9 @@ export default function DataPage() {
       };
 
       console.log('[DataPage] Storing form data:', dataToStore);
-      sessionStorage.setItem('dataFormData', JSON.stringify(dataToStore));
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('dataFormData', JSON.stringify(dataToStore));
+      }
 
       router.push('/dashboard/data/review');
     } catch (err) {

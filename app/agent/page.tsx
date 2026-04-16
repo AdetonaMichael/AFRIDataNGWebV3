@@ -34,13 +34,13 @@ export default function AgentPage() {
         <p className="text-gray-600 mt-2">Manage your customers and earnings</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="flex overflow-x-auto gap-6 pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-3 md:overflow-x-visible">
         {[
           { title: 'Total Customers', value: '0' },
           { title: 'This Month Earnings', value: '₦0.00' },
           { title: 'Pending Commission', value: '₦0.00' },
         ].map((stat) => (
-          <Card key={stat.title}>
+          <Card key={stat.title} className="min-w-full md:min-w-auto snap-start md:snap-start">
             <h3 className="text-gray-600 text-sm font-medium mb-2">{stat.title}</h3>
             <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
           </Card>

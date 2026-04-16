@@ -305,14 +305,14 @@ export default function AdminPage() {
       </section>
 
       {/* KPI */}
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <section className="flex overflow-x-auto gap-5 pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 md:overflow-x-visible xl:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
 
           return (
             <Card
               key={stat.title}
-              className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]"
+              className="min-w-full md:min-w-auto rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] snap-start md:snap-start"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>

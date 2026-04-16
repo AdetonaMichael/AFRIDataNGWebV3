@@ -185,7 +185,9 @@ export default function AirtimePage() {
         providerName: providers.find((p) => p.serviceID === formData.provider)?.name,
       };
       console.log('[Airtime] Storing form data to session:', dataToStore);
-      sessionStorage.setItem('airtimeFormData', JSON.stringify(dataToStore));
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('airtimeFormData', JSON.stringify(dataToStore));
+      }
 
       console.log('[Airtime] Navigating to review page...');
       router.push('/dashboard/airtime/review');

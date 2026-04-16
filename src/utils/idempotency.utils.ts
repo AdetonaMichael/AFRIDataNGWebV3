@@ -14,13 +14,15 @@ export const generateIdempotencyKey = (): string => {
  */
 export const storeIdempotencyKey = (key: string, operationId: string): void => {
   try {
-    const stored = JSON.parse(sessionStorage.getItem('idempotency_keys') || '{}');
-    stored[operationId] = {
-      key,
-      timestamp: Date.now(),
-    };
-    sessionStorage.setItem('idempotency_keys', JSON.stringify(stored));
-    console.log('[Idempotency] Key stored for operation:', operationId);
+    if (typeof window !== 'undefined') {
+      const stored = JSON.parse(sessionStorage.getItem('idempotency_keys') || '{}');
+      stored[operationId] = {
+        key,
+        timestamp: Date.now(),
+      };
+      sessionStorage.setItem('idempotency_keys', JSON.stringify(stored));
+      console.log('[Idempotency] Key stored for operation:', operationId);
+    }
   } catch (error) {
     console.warn('[Idempotency] Failed to store key:', error);
   }
@@ -32,8 +34,11 @@ export const storeIdempotencyKey = (key: string, operationId: string): void => {
  */
 export const getStoredIdempotencyKey = (operationId: string): string | null => {
   try {
-    const stored = JSON.parse(sessionStorage.getItem('idempotency_keys') || '{}');
-    return stored[operationId]?.key || null;
+    if (typeof window !== 'undefined') {
+      const stored = JSON.parse(sessionStorage.getItem('idempotency_keys') || '{}');
+      return stored[operationId]?.key || null;
+    }
+    return null;
   } catch (error) {
     console.warn('[Idempotency] Failed to retrieve key:', error);
     return null;
@@ -45,10 +50,12 @@ export const getStoredIdempotencyKey = (operationId: string): string | null => {
  */
 export const clearIdempotencyKey = (operationId: string): void => {
   try {
-    const stored = JSON.parse(sessionStorage.getItem('idempotency_keys') || '{}');
-    delete stored[operationId];
-    sessionStorage.setItem('idempotency_keys', JSON.stringify(stored));
-    console.log('[Idempotency] Key cleared for operation:', operationId);
+    if (typeof window !== 'undefined') {
+      const stored = JSON.parse(sessionStorage.getItem('idempotency_keys') || '{}');
+      delete stored[operationId];
+      sessionStorage.setItem('idempotency_keys', JSON.stringify(stored));
+      console.log('[Idempotency] Key cleared for operation:', operationId);
+    }
   } catch (error) {
     console.warn('[Idempotency] Failed to clear key:', error);
   }
@@ -59,7 +66,9 @@ export const clearIdempotencyKey = (operationId: string): void => {
  */
 export const clearAllIdempotencyKeys = (): void => {
   try {
-    sessionStorage.removeItem('idempotency_keys');
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('idempotency_keys');
+    }
     console.log('[Idempotency] All keys cleared');
   } catch (error) {
     console.warn('[Idempotency] Failed to clear all keys:', error);

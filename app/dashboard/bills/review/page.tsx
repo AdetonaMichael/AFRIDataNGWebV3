@@ -48,7 +48,7 @@ export default function ElectricityReviewPage() {
 
   // Load form data from sessionStorage
   useEffect(() => {
-    const stored = sessionStorage.getItem('electricityFormData');
+    const stored = typeof window !== 'undefined' ? sessionStorage.getItem('electricityFormData') : null;
     if (!stored) {
       router.push('/dashboard/bills');
       return;
@@ -169,7 +169,9 @@ export default function ElectricityReviewPage() {
 
       if (confirmResult?.success) {
         success('Electricity bill payment successful!');
-        sessionStorage.removeItem('electricityFormData');
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('electricityFormData');
+        }
         router.push('/dashboard/history');
       } else {
         alertError(confirmResult?.message || 'Payment confirmation failed');
@@ -329,10 +331,15 @@ export default function ElectricityReviewPage() {
           <h2 className="text-lg font-semibold text-gray-900">Payment Method</h2>
 
           <div className="space-y-3">
-            {['wallet', 'card', 'bank_transfer'].map((method) => (
+            {['wallet', 'card', 'bank_transfer'].map((method) => {
+              const isDisabled = method !== 'wallet';
+              return (
               <label
                 key={method}
-                className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                title={isDisabled ? 'Coming soon' : ''}
+                className={`flex items-center p-4 border-2 rounded-lg transition-all ${
+                  isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                } ${
                   paymentMethod === method
                     ? 'border-primary bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300'
@@ -341,6 +348,7 @@ export default function ElectricityReviewPage() {
                 <input
                   type="radio"
                   value={method}
+                  disabled={isDisabled}
                   checked={paymentMethod === method}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="w-4 h-4"
@@ -349,7 +357,8 @@ export default function ElectricityReviewPage() {
                   {method === 'bank_transfer' ? 'Bank Transfer' : method.charAt(0).toUpperCase() + method.slice(1)}
                 </span>
               </label>
-            ))}
+            );
+            })}
           </div>
         </div>
       </Card>
