@@ -142,7 +142,21 @@ export default function ReferralPage() {
     if (!referrals?.link) return;
 
     try {
-      await navigator.clipboard.writeText(referrals.link);
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(referrals.link);
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = referrals.link;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
       setCopied(true);
 
       window.setTimeout(() => {
@@ -150,6 +164,8 @@ export default function ReferralPage() {
       }, 2000);
     } catch (error) {
       console.error('Failed to copy referral link:', error);
+      // Fallback: show error alert
+      alert('Unable to copy link. Please try again.');
     }
   };
 
@@ -162,17 +178,7 @@ export default function ReferralPage() {
   }
 
   return (
-    <div
-      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-      className="space-y-8"
-    >
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        * {
-          font-family: 'Plus Jakarta Sans', sans-serif;
-        }
-      `}</style>
-
+    <div className="space-y-8">
       {/* Hero */}
       <section className="relative overflow-hidden rounded-[30px] border border-[#e5e7eb] bg-[#0b1220] px-6 py-8 sm:px-8 sm:py-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(74,95,247,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.06),transparent_24%)]" />

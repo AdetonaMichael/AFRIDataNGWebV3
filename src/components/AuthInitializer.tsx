@@ -31,22 +31,33 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
 
     const initializeAuth = async () => {
       try {
+        console.log('[AuthInitializer] Starting auth initialization...');
         setIsLoading(true);
+        
+        console.log('[AuthInitializer] Checking for token in storage...');
         const token = typeof window !== 'undefined' ? safeGetItem('token') : null;
+        console.log('[AuthInitializer] Token found:', !!token);
 
         if (token) {
           console.log('[AuthInitializer] Found token in localStorage, verifying...');
           
-          // Try to fetch user profile to verify token is valid
-          const response = await userService.getProfile();
+          try {
+            // Try to fetch user profile to verify token is valid
+            console.log('[AuthInitializer] Fetching user profile...');
+            const response = await userService.getProfile();
+            console.log('[AuthInitializer] Profile fetch response:', response);
 
-          if (response.success && response.data?.user) {
-            console.log('[AuthInitializer] Token valid, restoring user:', response.data.user);
-            // User is authenticated - restore to store
-            setUser(response.data.user);
-          } else {
-            console.warn('[AuthInitializer] Token invalid or user fetch failed');
-            // Token is invalid - clear it
+            if (response.success && response.data?.user) {
+              console.log('[AuthInitializer] Token valid, restoring user:', response.data.user);
+              // User is authenticated - restore to store
+              setUser(response.data.user);
+            } else {
+              console.warn('[AuthInitializer] Token invalid or user fetch failed');
+              // Token is invalid - clear it
+              logout();
+            }
+          } catch (fetchError: any) {
+            console.error('[AuthInitializer] Error fetching user profile:', fetchError);
             logout();
           }
         } else {
@@ -56,9 +67,15 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
         }
       } catch (error: any) {
         console.error('[AuthInitializer] Auth initialization error:', error);
+        console.error('[AuthInitializer] Error details:', {
+          message: error?.message,
+          stack: error?.stack,
+          code: error?.code,
+        });
         // On error, clear auth state
         logout();
       } finally {
+        console.log('[AuthInitializer] Auth initialization complete');
         setIsLoading(false);
         setIsInitialized(true);
       }

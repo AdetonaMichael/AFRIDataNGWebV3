@@ -188,78 +188,26 @@ export default function HistoryPage() {
   const isPaginationLoading = loading && transactions.length > 0;
 
   return (
-    <div
-      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-      className="space-y-8"
-    >
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        * {
-          font-family: 'Plus Jakarta Sans', sans-serif;
-        }
-      `}</style>
+    <div className="space-y-8">
 
       {/* Hero */}
-      <section className="relative overflow-hidden rounded-[30px] border border-[#e5e7eb] bg-[#0b1220] px-6 py-8 sm:px-8 sm:py-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(74,95,247,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.06),transparent_24%)]" />
-
-        <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#c7d2fe]">
-              Transaction Center
-            </span>
-
-            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              Transaction History
-            </h1>
-
-            <p className="mt-3 max-w-xl text-sm leading-7 text-[#cbd5e1] sm:text-base">
-              Review your payments, monitor statuses, and keep track of all recent
-              activity from one clean and searchable view.
-            </p>
-          </div>
-
-          <div className="grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Visible Transactions
-              </p>
-              <p className="mt-3 text-2xl font-bold text-white">
-                {transactions.length}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Successful
-              </p>
-              <p className="mt-3 text-2xl font-bold text-white">
-                {stats.successfulCount}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Pending
-              </p>
-              <p className="mt-3 text-2xl font-bold text-white">
-                {stats.pendingCount}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Quick Stats */}
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        {isInitialLoading ? (
-          <>
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-          </>
-        ) : (
-          <>
-            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+      <section className="overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-5 min-w-min">
+          {isInitialLoading ? (
+            <>
+              <div className="flex-shrink-0 w-full sm:w-96">
+                <StatCardSkeleton />
+              </div>
+              <div className="flex-shrink-0 w-full sm:w-96">
+                <StatCardSkeleton />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex-shrink-0 w-full sm:w-96">
+                <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-[#6b7280]">Visible Volume</p>
@@ -275,9 +223,11 @@ export default function HistoryPage() {
                   <Wallet className="h-5 w-5 text-[#4a5ff7]" />
                 </div>
               </div>
-            </Card>
+              </Card>
+              </div>
 
-            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+              <div className="flex-shrink-0 w-full sm:w-96">
+                <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-[#6b7280]">All Time Records</p>
@@ -293,9 +243,11 @@ export default function HistoryPage() {
                   <CreditCard className="h-5 w-5 text-[#4a5ff7]" />
                 </div>
               </div>
-            </Card>
-          </>
-        )}
+              </Card>
+              </div>
+            </>
+          )}
+        </div>
       </section>
 
       {/* Filters */}

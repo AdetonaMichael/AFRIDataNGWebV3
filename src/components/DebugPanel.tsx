@@ -12,11 +12,18 @@ import { useAuthStore } from '@/store/auth.store';
 export const DebugPanel = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [logs, setLogs] = useState<any[]>([]);
+  const [errorLogs, setErrorLogs] = useState<any[]>([]);
   const { user, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
     const refreshLogs = () => {
       setLogs(getDebugLogs());
+      try {
+        const errors = JSON.parse(localStorage.getItem('app_error_logs') || '[]');
+        setErrorLogs(errors);
+      } catch (e) {
+        // ignore
+      }
     };
 
     refreshLogs();
@@ -65,6 +72,20 @@ export const DebugPanel = () => {
 
       {/* Logs */}
       <div className="px-4 py-3 border-t border-gray-700 flex-1 overflow-y-auto">
+        {errorLogs.length > 0 && (
+          <>
+            <div className="font-bold text-red-400 mb-2">Errors ({errorLogs.length})</div>
+            <div className="space-y-2 text-gray-400 mb-4 pb-4 border-b border-gray-700">
+              {errorLogs.map((error, idx) => (
+                <div key={idx} className="text-xs bg-red-950 p-2 rounded">
+                  <div className="text-red-300 font-bold">{error.message}</div>
+                  {error.stack && <div className="text-red-400 text-xs mt-1 font-mono">{error.stack.substring(0, 200)}</div>}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        
         <div className="font-bold text-green-400 mb-2">Logs ({logs.length})</div>
         <div className="space-y-1 text-gray-400">
           {logs.slice(-20).map((log, idx) => (
@@ -88,7 +109,12 @@ export const DebugPanel = () => {
         </button>
         <button
           onClick={() => {
-            const data = exportDebugLogs();
+            const data = JSON.stringify({
+              errors: errorLogs,
+              debugLogs: logs,
+              userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+              timestamp: new Date().toISOString(),
+            }, null, 2);
             navigator.clipboard.writeText(data).then(() => alert('Copied to clipboard'));
           }}
           className="flex-1 px-2 py-1 bg-orange-600 hover:bg-orange-700 rounded text-xs"

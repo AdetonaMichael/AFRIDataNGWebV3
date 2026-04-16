@@ -30,6 +30,27 @@ export class ErrorBoundary extends React.Component<Props, State> {
     // Log to console for debugging
     console.error('[ErrorBoundary] Caught error:', error);
     console.error('[ErrorBoundary] Error info:', errorInfo);
+    console.error('[ErrorBoundary] Error stack:', error?.stack);
+    console.error('[ErrorBoundary] Component stack:', errorInfo?.componentStack);
+    
+    // Also log to localStorage for mobile inspection
+    try {
+      if (typeof window !== 'undefined') {
+        const errorLog = {
+          timestamp: new Date().toISOString(),
+          message: error?.message,
+          stack: error?.stack,
+          componentStack: errorInfo?.componentStack,
+          userAgent: navigator.userAgent,
+        };
+        const logs = JSON.parse(localStorage.getItem('app_error_logs') || '[]');
+        logs.push(errorLog);
+        if (logs.length > 10) logs.splice(0, logs.length - 10);
+        localStorage.setItem('app_error_logs', JSON.stringify(logs));
+      }
+    } catch (e) {
+      console.warn('[ErrorBoundary] Failed to log error:', e);
+    }
     
     // You could also log to an error tracking service here
     // e.g., Sentry, LogRocket, etc.
@@ -63,12 +84,13 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <p className="text-gray-600 text-sm mb-4">
               We encountered an unexpected error. Please try refreshing the page.
             </p>
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-left text-xs text-red-800 overflow-auto max-h-40">
-                <p className="font-mono font-bold mb-2">Error Details:</p>
-                <p>{this.state.error.message}</p>
-              </div>
-            )}
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-left text-xs text-red-800 overflow-auto max-h-40">
+              <p className="font-mono font-bold mb-2">Error Details:</p>
+              <p className="break-words">{this.state.error?.message || 'Unknown error'}</p>
+              {this.state.error?.stack && (
+                <p className="text-xs text-gray-600 mt-2 font-mono">{this.state.error.stack}</p>
+              )}
+            </div>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => window.location.reload()}
