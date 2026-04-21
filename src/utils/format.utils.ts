@@ -16,8 +16,13 @@ export const formatDateTime = (date: string | Date): string => {
   return format(new Date(date), 'MMM dd, yyyy HH:mm');
 };
 
-export const formatRelativeTime = (date: string | Date): string => {
-  return formatDistanceToNow(new Date(date), { addSuffix: true });
+export const formatRelativeTime = (date: string | Date | null | undefined): string => {
+  if (!date) return 'Unknown';
+  
+  const dateObj = new Date(date);
+  if (isNaN(dateObj.getTime())) return 'Unknown';
+  
+  return formatDistanceToNow(dateObj, { addSuffix: true });
 };
 
 // Phone formatting

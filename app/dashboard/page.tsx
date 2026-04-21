@@ -178,7 +178,7 @@ export default function DashboardPage() {
   const getTransactionTimestamp = (transaction: TransactionData): string => {
     const dateStr = transaction.created_at || transaction.transaction_date;
     if (!dateStr) return 'Unknown';
-    return new Date(dateStr).toLocaleString();
+    return dateStr;
   };
 
   const getTransactionTypeLabel = (transaction: TransactionData): string => {
