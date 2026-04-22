@@ -24,6 +24,7 @@ interface AuthStore {
   setError: (error: string | null) => void;
   setPinStatus: (status: PINStatus | null) => void;
   setActiveRole: (role: string) => void;
+  getPrimaryRole: (roles?: string[]) => string | null;
   logout: () => void;
   reset: () => void;
 }
@@ -73,12 +74,24 @@ export const useAuthStore = create<AuthStore>()(
       activeRole: null,
 
       setUser: (user) => {
+        // Determine primary role for activeRole
+        let primaryRole: string | null = null;
+        if (user?.roles) {
+          if (user.roles.includes('admin')) {
+            primaryRole = 'admin';
+          } else if (user.roles.includes('agent')) {
+            primaryRole = 'agent';
+          } else {
+            primaryRole = user.roles[0] || null;
+          }
+        }
+
         set({
           user,
           isAuthenticated: !!user,
           error: null,
-          // Set activeRole to first role when user logs in
-          activeRole: user?.roles?.[0] || null,
+          // Set activeRole to primary role (admin > agent > customer/user)
+          activeRole: primaryRole,
         });
       },
 
@@ -95,6 +108,14 @@ export const useAuthStore = create<AuthStore>()(
       setPinStatus: (status) => set({ pinStatus: status }),
 
       setActiveRole: (role) => set({ activeRole: role }),
+
+      getPrimaryRole: (roles?: string[]) => {
+        const rolesToCheck = roles || [];
+        // Order of priority: admin > agent > customer/user
+        if (rolesToCheck.includes('admin')) return 'admin';
+        if (rolesToCheck.includes('agent')) return 'agent';
+        return rolesToCheck.find((r) => r === 'customer' || r === 'user') || rolesToCheck[0] || null;
+      },
 
       logout: () => {
         if (typeof window !== 'undefined') {

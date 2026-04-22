@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Home,
   Send,
@@ -18,17 +18,53 @@ import {
   Tv,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
 import { Button } from '@/components/shared/Button';
 import { Topbar } from '@/components/shared/Topbar';
 import { AuthProtected } from '@/components/AuthProtected';
+import { Spinner } from '@/components/shared/Spinner';
 import { clsx } from 'clsx';
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, logout } = useAuth();
+  const { activeRole } = useAuthStore();
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Role protection: Redirect if user has higher privilege roles
+  useEffect(() => {
+    if (!user) {
+      setLoading(true);
+      return;
+    }
+
+    // Check if user has higher privilege roles
+    const hasAdminRole = user.roles?.includes('admin');
+    const hasAgentRole = user.roles?.includes('agent');
+
+    // If user has agent or admin role, redirect to appropriate dashboard
+    if (activeRole) {
+      // Respect explicit role selection
+      if (activeRole === 'admin' && hasAdminRole) {
+        router.push('/admin');
+        return;
+      } else if (activeRole === 'agent' && hasAgentRole) {
+        router.push('/agent');
+        return;
+      }
+    } else if (hasAdminRole || hasAgentRole) {
+      // If no explicit role selected but user has higher privilege, redirect
+      const redirectPath = hasAdminRole ? '/admin' : '/agent';
+      router.push(redirectPath);
+      return;
+    }
+
+    setLoading(false);
+  }, [user, activeRole, router]);
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -42,6 +78,14 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   ];
 
   const isActive = (href: string) => pathname === href;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spinner />
+      </div>
+    );
+  }
 
   return (
     <AuthProtected requireAuth={true}>

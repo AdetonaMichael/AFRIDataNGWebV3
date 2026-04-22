@@ -43,7 +43,7 @@ export const Modal = ({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black bg-opacity-25" />
+          <div className="fixed inset-0 backdrop-blur-sm bg-white/10" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -57,7 +57,7 @@ export const Modal = ({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className={clsx('w-full bg-white rounded-lg shadow-xl', sizeClasses[size])}>
+              <Dialog.Panel className={clsx('w-full bg-white rounded-lg shadow-xl overflow-visible', sizeClasses[size])}>
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
                   <Dialog.Title className="text-lg font-semibold text-gray-900">
@@ -74,7 +74,7 @@ export const Modal = ({
                 </div>
 
                 {/* Body */}
-                <div className="px-6 py-4">{children}</div>
+                <div className="px-6 py-4 overflow-visible">{children}</div>
 
                 {/* Footer */}
                 {footer && (

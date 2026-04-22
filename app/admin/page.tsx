@@ -1,47 +1,210 @@
 'use client';
 
-import Link from 'next/link';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowRight,
-  BellRing,
-  CheckCircle2,
-  ChevronRight,
-  CreditCard,
-  Database,
-  FileBarChart2,
-  Gauge,
-  Gift,
-  Landmark,
-  Layers3,
-  ReceiptText,
-  RefreshCcw,
-  Send,
-  Settings2,
-  ShieldCheck,
-  Smartphone,
-  UserCog,
-  Users2,
+  BarChart3,
+  TrendingUp,
+  Users,
   Wallet,
-  Wifi,
+  CreditCard,
+  CheckCircle2,
+  AlertCircle,
+  Activity,
+  Network,
+  Zap,
+  Clock,
+  RefreshCw,
+  Eye,
 } from 'lucide-react';
 
 import { Card } from '@/components/shared/Card';
-import { Spinner } from '@/components/shared/Spinner';
+import { Badge } from '@/components/shared/Badge';
+import { Button } from '@/components/shared/Button';
+import { AdminTable } from '@/components/admin/AdminTable';
 import { useAuthStore } from '@/store/auth.store';
+import { Spinner } from '@/components/shared/Spinner';
+import { formatCurrency, formatDate } from '@/utils/format.utils';
+import { adminService } from '@/services/admin.service';
 
-function classNames(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(' ');
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface DashboardData {
+  overview: {
+    users: {
+      total: number;
+      verified: number;
+      verification_rate: number;
+      active_last_30_days: number;
+      new_today: number;
+      new_this_month: number;
+    };
+    transactions: {
+      total_volume: number;
+      volume_today: number;
+      volume_this_month: number;
+      month_growth_rate: string;
+      total_count: number;
+      completed_count: number;
+      pending_count: number;
+      failed_count: number;
+    };
+    vtu: {
+      completed_transactions: number;
+      volume: number;
+      commission_earned: number;
+      failed_count: number;
+      success_rate: number;
+    };
+    wallet: {
+      total_transactions: number;
+      volume: number;
+      active_wallets: number;
+    };
+    revenue: {
+      total_commission: number;
+      commission_today: number;
+    };
+    referrals: {
+      total_referrals: number;
+      active_referrers: number;
+    };
+    timestamp: string;
+  };
+  services: {
+    vtu_by_network: Array<{
+      network: string;
+      transaction_count: number;
+      volume: number;
+      commission: number;
+    }>;
+    service_distribution: Array<{
+      type: string;
+      count: number;
+      volume: number;
+      percentage: number;
+    }>;
+    timestamp: string;
+  };
+  performance: {
+    daily_trend_30_days: Array<{
+      date: string;
+      transaction_count: number;
+      volume: number;
+    }>;
+    hourly_trend_today: Array<{
+      hour: number;
+      transaction_count: number;
+      volume: number;
+    }>;
+    success_rate_by_type: Array<{
+      type: string;
+      total: number;
+      successful: number;
+      success_rate: number;
+    }>;
+    timestamp: string;
+  };
+  top_performers: {
+    top_networks: Array<{
+      network: string;
+      transaction_count: number;
+      volume: number;
+    }>;
+    top_users_by_volume: Array<{
+      user_id: number;
+      name: string;
+      email: string;
+      transaction_count: number;
+      total_volume: number;
+    }>;
+    top_referrers: Array<{
+      user_id: number;
+      name: string;
+      referral_count: number;
+    }>;
+    timestamp: string;
+  };
+  health: {
+    transaction_health: {
+      failed_last_24h: number;
+      pending_stuck: number;
+      status: string;
+    };
+    user_health: {
+      unverified_users: number;
+      email_unverified: number;
+    };
+    notification_health: {
+      unread_count: number;
+    };
+    offers: {
+      active_codes: number;
+    };
+    alerts: Array<{
+      level: 'info' | 'warning' | 'error';
+      message: string;
+    }>;
+    timestamp: string;
+  };
+  timestamp: string;
 }
 
-export default function AdminPage() {
-  const { user } = useAuthStore();
-  const router = useRouter();
+interface Transaction {
+  id: string | number;
+  user_id: number;
+  transaction_type: string;
+  amount: number;
+  status: string;
+  transaction_date: string;
+  reference: string;
+  metadata?: Record<string, any>;
+}
 
-  const isAdmin = useMemo(() => {
-    return Boolean(user?.roles?.some((role) => role === 'admin'));
-  }, [user]);
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatCompactCurrency(value: number): string {
+  if (value >= 1_000_000) {
+    return `₦${(value / 1_000_000).toFixed(1)}M`;
+  }
+  if (value >= 1_000) {
+    return `₦${(value / 1_000).toFixed(0)}K`;
+  }
+  return `₦${value.toLocaleString()}`;
+}
+
+function getStatusBadge(status: string) {
+  const statusConfig: Record<string, { variant: any; text: string }> = {
+    completed: { variant: 'success', text: 'Completed' },
+    pending: { variant: 'warning', text: 'Pending' },
+    failed: { variant: 'error', text: 'Failed' },
+  };
+
+  const config = statusConfig[status?.toLowerCase()] || { variant: 'default', text: status };
+  return <Badge variant={config.variant}>{config.text}</Badge>;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export default function AdminDashboardPage() {
+  const router = useRouter();
+  const { user } = useAuthStore();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
+
+  // Transaction state
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalTransactions, setTotalTransactions] = useState(0);
+
+  const isAdmin = useMemo(
+    () => Boolean(user?.roles?.some((role) => role === 'admin')),
+    [user]
+  );
 
   useEffect(() => {
     if (user && !isAdmin) {
@@ -49,209 +212,164 @@ export default function AdminPage() {
     }
   }, [user, isAdmin, router]);
 
-  if (!user) {
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log('[AdminDashboard] Fetching dashboard data...');
+        
+        // Use adminService to fetch dashboard data
+        const response = await adminService.getDashboard();
+
+        console.log('[AdminDashboard] Response received:', {
+          success: response.success,
+          hasData: !!response.data,
+          dataKeys: response.data ? Object.keys(response.data) : [],
+        });
+
+        if (response.success && response.data) {
+          console.log('[AdminDashboard] Setting dashboard data');
+          // response.data already contains the full dashboard object
+          setData(response.data as unknown as DashboardData);
+        } else {
+          throw new Error(response.message || 'Invalid dashboard response');
+        }
+      } catch (err: any) {
+        console.error('[AdminDashboard] Error fetching dashboard:', {
+          message: err?.message,
+          status: err?.response?.status,
+          statusText: err?.response?.statusText,
+          data: err?.response?.data,
+          url: err?.config?.url,
+        });
+        const errorMessage = err?.response?.data?.message 
+          || err?.message 
+          || 'Failed to load dashboard data. Please check your connection and try again.';
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+        setRetrying(false);
+      }
+    };
+
+    fetchDashboard();
+  }, []);
+
+  const handleRetry = () => {
+    setRetrying(true);
+    setError(null);
+    
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log('[AdminDashboard] Retrying dashboard fetch...');
+        
+        const response = await adminService.getDashboard();
+
+        if (response.success && response.data) {
+          console.log('[AdminDashboard] Retry successful');
+          setData(response.data as unknown as DashboardData);
+        } else {
+          throw new Error(response.message || 'Invalid dashboard response');
+        }
+      } catch (err: any) {
+        console.error('[AdminDashboard] Retry failed:', {
+          message: err?.message,
+          status: err?.response?.status,
+        });
+        const errorMessage = err?.response?.data?.message 
+          || err?.message 
+          || 'Failed to load dashboard data. Please check your connection and try again.';
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+        setRetrying(false);
+      }
+    };
+    
+    fetchDashboard();
+  };
+
+  if (!isAdmin) return null;
+
+  if (loading) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef2ff]">
             <Spinner />
           </div>
           <p className="text-sm font-medium text-[#6b7280]">
-            Loading admin dashboard...
+            Loading dashboard…
           </p>
         </div>
       </div>
     );
   }
 
-  if (!isAdmin) {
-    return null;
+  if (error || !data) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="w-full max-w-md rounded-[24px] border border-[#e5e7eb] bg-white p-8 text-center shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+            <AlertCircle className="h-8 w-8 text-red-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-[#111827] mb-2">
+            Unable to Load Dashboard
+          </h3>
+          <p className="text-sm text-[#6b7280] mb-6">
+            {error || 'Failed to load dashboard data. Please check your connection and try again.'}
+          </p>
+          <button
+            onClick={handleRetry}
+            disabled={retrying}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#4a5ff7] px-6 py-2 text-sm font-medium text-white hover:bg-[#3a4fe7] disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw className={`h-4 w-4 ${retrying ? 'animate-spin' : ''}`} />
+            {retrying ? 'Retrying...' : 'Try Again'}
+          </button>
+        </div>
+      </div>
+    );
   }
 
-  /**
-   * Replace these with real API data later.
-   * Keep structure stable so UI is ready for backend wiring.
-   */
-  const stats = [
+  const kpiCards = [
     {
-      title: 'Total Users',
-      value: '12,480',
-      note: 'Registered users on platform',
-      change: '+8.2%',
-      trend: 'up',
-      icon: Users2,
+      label: 'Total Users',
+      value: data.overview.users.total.toLocaleString(),
+      icon: Users,
+      color: 'bg-blue-50 text-blue-600',
+      subtext: `${data.overview.users.verified} verified (${data.overview.users.verification_rate.toFixed(1)}%)`,
     },
     {
-      title: 'Today Revenue',
-      value: '₦4,250,000',
-      note: 'Successful transactions today',
-      change: '+12.5%',
-      trend: 'up',
-      icon: Wallet,
-    },
-    {
-      title: 'Transactions Today',
-      value: '2,184',
-      note: 'Across all supported services',
-      change: '+6.1%',
-      trend: 'up',
+      label: 'Monthly Volume',
+      value: formatCompactCurrency(data.overview.transactions.volume_this_month),
       icon: CreditCard,
+      color: 'bg-emerald-50 text-emerald-600',
+      subtext: `Growth: ${data.overview.transactions.month_growth_rate}`,
     },
     {
-      title: 'Success Rate',
-      value: '98.7%',
-      note: 'Platform-wide service success',
-      change: 'Healthy',
-      trend: 'neutral',
-      icon: Gauge,
-    },
-  ];
-
-  const serviceCards = [
-    {
-      title: 'Airtime',
-      volume: '₦1.4M',
-      transactions: '842 txns',
-      status: 'Stable',
-      icon: Smartphone,
+      label: 'Daily Revenue',
+      value: formatCurrency(data.overview.revenue.commission_today),
+      icon: Wallet,
+      color: 'bg-purple-50 text-purple-600',
+      subtext: `Total: ${formatCompactCurrency(data.overview.revenue.total_commission)}`,
     },
     {
-      title: 'Data Bundles',
-      volume: '₦1.1M',
-      transactions: '603 txns',
-      status: 'Stable',
-      icon: Wifi,
+      label: 'VTU Success Rate',
+      value: `${data.overview.vtu.success_rate.toFixed(1)}%`,
+      icon: CheckCircle2,
+      color: 'bg-green-50 text-green-600',
+      subtext: `${data.overview.vtu.completed_transactions.toLocaleString()} completed`,
     },
-    {
-      title: 'Airtime to Cash',
-      volume: '₦520K',
-      transactions: '96 conversions',
-      status: 'Monitored',
-      icon: RefreshCcw,
-    },
-    {
-      title: 'Referrals',
-      volume: '₦180K',
-      transactions: '34 payouts',
-      status: 'Stable',
-      icon: Gift,
-    },
-  ];
-
-  const quickActions = [
-    {
-      title: 'Users',
-      description: 'Manage users, profiles, and account access.',
-      href: '/admin/users',
-      icon: Users2,
-    },
-    {
-      title: 'Roles & Permissions',
-      description: 'Control roles, permissions, and admin access.',
-      href: '/admin/roles',
-      icon: ShieldCheck,
-    },
-    {
-      title: 'Transactions',
-      description: 'Review all payments, logs, and transaction records.',
-      href: '/admin/transactions',
-      icon: ReceiptText,
-    },
-    {
-      title: 'VTU Services',
-      description: 'Manage airtime, data, and other service configurations.',
-      href: '/admin/services',
-      icon: Layers3,
-    },
-    {
-      title: 'Notifications',
-      description: 'Manage DB, push, and email notification flows.',
-      href: '/admin/notifications',
-      icon: BellRing,
-    },
-    {
-      title: 'Reports',
-      description: 'View business reports and operational summaries.',
-      href: '/admin/reports',
-      icon: FileBarChart2,
-    },
-  ];
-
-  const pendingQueues = [
-    {
-      title: 'Referral Withdrawal Requests',
-      count: 12,
-      amount: '₦145,000',
-      href: '/admin/referrals/withdrawals',
-    },
-    {
-      title: 'Airtime-to-Cash Withdrawals',
-      count: 8,
-      amount: '₦92,500',
-      href: '/admin/airtime-to-cash/withdrawals',
-    },
-    {
-      title: 'Pending Transaction Reviews',
-      count: 17,
-      amount: '₦318,000',
-      href: '/admin/transactions?status=pending',
-    },
-    {
-      title: 'Notification Failures',
-      count: 6,
-      amount: 'Needs attention',
-      href: '/admin/notifications/logs',
-    },
-  ];
-
-  const activityFeed = [
-    {
-      title: 'New referral payout request submitted',
-      meta: 'Michael A. • ₦15,000 • 8 mins ago',
-      type: 'referral',
-    },
-    {
-      title: 'Airtime-to-cash withdrawal approved',
-      meta: 'User ID #2841 • ₦22,500 • 14 mins ago',
-      type: 'withdrawal',
-    },
-    {
-      title: 'Push notification campaign delivered',
-      meta: '1,240 recipients • 32 mins ago',
-      type: 'notification',
-    },
-    {
-      title: 'New admin role updated',
-      meta: 'Permissions changed for Support Manager • 1 hr ago',
-      type: 'security',
-    },
-    {
-      title: 'High transaction traffic detected on data service',
-      meta: '603 successful transactions today • 2 hrs ago',
-      type: 'traffic',
-    },
-  ];
-
-  const notificationStats = [
-    { label: 'DB Notifications', value: '8,421', color: 'bg-[#eef2ff] text-[#4a5ff7]' },
-    { label: 'Push Notifications', value: '2,184', color: 'bg-[#ecfdf3] text-[#16a34a]' },
-    { label: 'Email Notifications', value: '1,092', color: 'bg-[#fff7ed] text-[#ea580c]' },
-  ];
-
-  const moduleHealth = [
-    { label: 'Wallet System', status: 'Operational' },
-    { label: 'VTU Processing', status: 'Operational' },
-    { label: 'Referral Engine', status: 'Operational' },
-    { label: 'Notification Service', status: 'Partial Review' },
-    { label: 'Withdrawal Queue', status: 'Operational' },
-    { label: 'Roles & Permissions', status: 'Operational' },
   ];
 
   return (
-    <div
-      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-      className="space-y-8"
-    >
+    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="min-h-screen bg-gray-50">
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         * {
@@ -259,398 +377,392 @@ export default function AdminPage() {
         }
       `}</style>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-[30px] border border-[#e5e7eb] bg-[#0b1220] px-6 py-8 sm:px-8 sm:py-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(74,95,247,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.06),transparent_24%)]" />
-
-        <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#c7d2fe]">
-              Virtual Top-Up Admin Center
-            </span>
-
-            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              Admin Dashboard
-            </h1>
-
-            <p className="mt-3 max-w-xl text-sm leading-7 text-[#cbd5e1] sm:text-base">
-              Monitor users, transactions, referrals, notifications, withdrawals,
-              and service performance from one operational control surface.
-            </p>
-          </div>
-
-          <div className="grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Access Level
-              </p>
-              <p className="mt-3 text-lg font-bold text-white">Administrator</p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Active Modules
-              </p>
-              <p className="mt-3 text-lg font-bold text-white">12 Modules</p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Platform Status
-              </p>
-              <p className="mt-3 text-lg font-bold text-white">Healthy</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* KPI */}
-      <section className="flex overflow-x-auto gap-5 pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 md:overflow-x-visible xl:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-
-          return (
-            <Card
-              key={stat.title}
-              className="min-w-full md:min-w-auto rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] snap-start md:snap-start"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium text-[#6b7280]">{stat.title}</p>
-                  <p className="mt-3 text-3xl font-extrabold tracking-tight text-[#111827]">
-                    {stat.value}
-                  </p>
-                  <p className="mt-2 text-sm text-[#6b7280]">{stat.note}</p>
-                </div>
-
-                <div className="rounded-2xl bg-[#eef2ff] p-3">
-                  <Icon className="h-5 w-5 text-[#4a5ff7]" />
-                </div>
-              </div>
-
-              <div className="mt-5">
-                <span
-                  className={classNames(
-                    'inline-flex rounded-full px-3 py-1 text-xs font-semibold',
-                    stat.trend === 'up'
-                      ? 'bg-green-50 text-green-700'
-                      : 'bg-slate-100 text-slate-700'
-                  )}
-                >
-                  {stat.change}
-                </span>
-              </div>
-            </Card>
-          );
-        })}
-      </section>
-
-      {/* Quick actions */}
-      <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-7 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
-            Quick Actions
-          </h2>
-          <p className="mt-1 text-sm text-[#6b7280]">
-            Jump directly into the most important admin operations.
+      <div className="space-y-8 p-4 sm:p-6 md:p-8">
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <section>
+          <h1 className="text-3xl font-bold text-[#111827]">
+            Dashboard
+          </h1>
+          <p className="mt-2 text-sm text-[#6b7280]">
+            Real-time system metrics and performance analytics
           </p>
-        </div>
+        </section>
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {quickActions.map((action) => {
-            const Icon = action.icon;
-
-            return (
-              <Link key={action.href} href={action.href} className="group block">
-                <div className="rounded-[24px] border border-[#e5e7eb] bg-[#fcfcfd] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#cfd8ff] hover:bg-white hover:shadow-[0_16px_40px_rgba(0,0,0,0.06)]">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="rounded-2xl bg-[#eef2ff] p-3">
-                      <Icon className="h-5 w-5 text-[#4a5ff7]" />
-                    </div>
-
-                    <div className="rounded-full bg-[#eef2ff] p-2 transition-colors group-hover:bg-[#4a5ff7]">
-                      <ArrowRight className="h-4 w-4 text-[#4a5ff7] group-hover:text-white" />
-                    </div>
-                  </div>
-
-                  <h3 className="mt-5 text-base font-bold text-[#111827]">
-                    {action.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-7 text-[#6b7280]">
-                    {action.description}
-                  </p>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </Card>
-
-      {/* Operational overview */}
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-7 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-          <div className="mb-6 flex items-end justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
-                Service Performance
-              </h2>
-              <p className="mt-1 text-sm text-[#6b7280]">
-                Monitor live-performing services and transaction distribution.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {serviceCards.map((service) => {
-              const Icon = service.icon;
-
+        {/* ── KPI Cards (Horizontally Scrollable) ────────────────────────── */}
+        <section>
+          <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-x-visible lg:grid-cols-4">
+            {kpiCards.map((kpi) => {
+              const Icon = kpi.icon;
               return (
-                <div
-                  key={service.title}
-                  className="rounded-[24px] border border-[#edf2f7] bg-[#fcfcfd] p-5"
+                <Card
+                  key={kpi.label}
+                  className="min-w-full snap-start rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] md:min-w-0"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div className="rounded-2xl bg-[#eef2ff] p-3">
-                      <Icon className="h-5 w-5 text-[#4a5ff7]" />
-                    </div>
-
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                      {service.status}
-                    </span>
-                  </div>
-
-                  <h3 className="mt-5 text-base font-bold text-[#111827]">
-                    {service.title}
-                  </h3>
-
-                  <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl bg-white p-4">
-                      <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                        Volume
+                    <div>
+                      <p className="text-sm font-medium text-[#6b7280]">
+                        {kpi.label}
                       </p>
-                      <p className="mt-2 text-lg font-bold text-[#111827]">
-                        {service.volume}
+                      <p className="mt-3 text-2xl font-bold text-[#111827]">
+                        {kpi.value}
+                      </p>
+                      <p className="mt-2 text-xs text-[#6b7280]">
+                        {kpi.subtext}
                       </p>
                     </div>
-
-                    <div className="rounded-2xl bg-white p-4">
-                      <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                        Activity
-                      </p>
-                      <p className="mt-2 text-lg font-bold text-[#111827]">
-                        {service.transactions}
-                      </p>
+                    <div className={`rounded-2xl ${kpi.color} p-3`}>
+                      <Icon className="h-5 w-5" />
                     </div>
                   </div>
-                </div>
+                </Card>
               );
             })}
           </div>
-        </Card>
+        </section>
 
-        <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-7 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
-              Pending Queues
-            </h2>
-            <p className="mt-1 text-sm text-[#6b7280]">
-              Items that require admin attention or approval.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {pendingQueues.map((item) => (
-              <Link
-                key={item.title}
-                href={item.href}
-                className="block rounded-[22px] border border-[#edf2f7] bg-[#fcfcfd] p-4 transition hover:bg-white hover:shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-[#111827]">
-                      {item.title}
-                    </h3>
-                    <p className="mt-1 text-sm text-[#6b7280]">{item.amount}</p>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="rounded-full bg-[#eef2ff] px-3 py-1 text-xs font-semibold text-[#4a5ff7]">
-                      {item.count}
-                    </span>
-                    <ChevronRight className="h-4 w-4 text-[#9ca3af]" />
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </Card>
-      </section>
-
-      {/* Activity + notification + health */}
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_0.9fr_0.9fr]">
-        <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-7 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-          <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
-            Recent Activity
-          </h2>
-          <p className="mt-1 text-sm text-[#6b7280]">
-            Latest admin-relevant events across the platform.
-          </p>
-
-          <div className="mt-6 space-y-4">
-            {activityFeed.map((item, index) => (
-              <div
-                key={`${item.title}-${index}`}
-                className="flex items-start gap-4 rounded-[22px] border border-[#edf2f7] bg-[#fcfcfd] p-4"
-              >
-                <div className="mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full bg-[#4a5ff7]" />
-                <div>
-                  <p className="text-sm font-semibold text-[#111827]">
-                    {item.title}
-                  </p>
-                  <p className="mt-1 text-sm text-[#6b7280]">{item.meta}</p>
-                </div>
+        {/* ── Charts Grid ────────────────────────────────────────────────── */}
+        <section className="grid gap-6 md:grid-cols-2">
+          {/* Service Distribution */}
+          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-2xl bg-[#eef2ff] p-3">
+                <BarChart3 className="h-5 w-5 text-[#4a5ff7]" />
               </div>
-            ))}
-          </div>
-        </Card>
+              <div>
+                <h3 className="font-semibold text-[#111827]">
+                  Service Distribution
+                </h3>
+                <p className="text-xs text-[#6b7280]">
+                  Transaction breakdown by service type
+                </p>
+              </div>
+            </div>
 
-        <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-7 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-          <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
-            Notification Overview
-          </h2>
-          <p className="mt-1 text-sm text-[#6b7280]">
-            Delivery activity across your notification channels.
-          </p>
+            <div className="space-y-4">
+              {data.services.service_distribution && data.services.service_distribution.length > 0 ? (
+                data.services.service_distribution.map((service) => (
+                  <div key={service.type}>
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-medium text-[#111827]">
+                        {service.type.replace(/_/g, ' ').toUpperCase()}
+                      </span>
+                      <span className="text-sm font-bold text-[#4a5ff7]">
+                        {service.percentage.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-[#f3f4f6]">
+                      <div
+                        className="h-full rounded-full bg-[#4a5ff7]"
+                        style={{ width: `${Math.max(service.percentage, 2)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-[#6b7280]">No service distribution data available</p>
+              )}
+            </div>
+          </Card>
 
-          <div className="mt-6 space-y-4">
-            {notificationStats.map((item) => (
-              <div
-                key={item.label}
-                className="rounded-[22px] border border-[#edf2f7] bg-[#fcfcfd] p-4"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-[#111827]">{item.label}</p>
-                  <span className={classNames('rounded-full px-3 py-1 text-xs font-semibold', item.color)}>
-                    {item.value}
+          {/* Network Performance */}
+          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-2xl bg-[#eef2ff] p-3">
+                <Network className="h-5 w-5 text-[#4a5ff7]" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[#111827]">
+                  Network Performance
+                </h3>
+                <p className="text-xs text-[#6b7280]">
+                  VTU transactions by network
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {data.services.vtu_by_network && data.services.vtu_by_network.length > 0 ? (
+                data.services.vtu_by_network.map((network) => (
+                  <div
+                    key={network.network}
+                    className="flex items-center justify-between border-b border-[#f1f5f9] pb-4 last:border-b-0"
+                  >
+                    <div>
+                      <p className="font-semibold text-[#111827]">
+                        {network.network}
+                      </p>
+                      <p className="text-xs text-[#6b7280]">
+                        {network.transaction_count} transactions
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-[#111827]">
+                        {formatCompactCurrency(network.volume)}
+                      </p>
+                      <p className="text-xs text-[#6b7280]">
+                        {formatCompactCurrency(network.commission)} commission
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-[#6b7280]">No network performance data available</p>
+              )}
+            </div>
+          </Card>
+        </section>
+
+        {/* ── Performance & Top Performers Grid ──────────────────────────– */}
+        <section className="grid gap-6 md:grid-cols-2">
+          {/* Success Rate by Type */}
+          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-2xl bg-[#eef2ff] p-3">
+                <TrendingUp className="h-5 w-5 text-[#4a5ff7]" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[#111827]">
+                  Success Rates
+                </h3>
+                <p className="text-xs text-[#6b7280]">
+                  By transaction type
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {data.performance?.success_rate_by_type && data.performance.success_rate_by_type.length > 0 ? (
+                data.performance.success_rate_by_type.map((type) => (
+                  <div key={type.type}>
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-medium text-[#111827]">
+                        {type.type.replace(/_/g, ' ').toUpperCase()}
+                      </span>
+                      <span className="text-sm font-bold text-green-600">
+                        {type.success_rate.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-[#f3f4f6]">
+                      <div
+                        className="h-full rounded-full bg-green-500"
+                        style={{ width: `${type.success_rate}%` }}
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-[#6b7280]">
+                      {type.successful} of {type.total} successful
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-[#6b7280]">No success rate data available</p>
+              )}
+            </div>
+          </Card>
+
+          {/* Top Performers */}
+          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-2xl bg-[#eef2ff] p-3">
+                <Zap className="h-5 w-5 text-[#4a5ff7]" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[#111827]">
+                  Top Networks
+                </h3>
+                <p className="text-xs text-[#6b7280]">
+                  By transaction volume
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {data.top_performers?.top_networks && data.top_performers.top_networks.length > 0 ? (
+                data.top_performers.top_networks.slice(0, 4).map((network, idx) => (
+                  <div key={network.network} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#eef2ff] text-xs font-bold text-[#4a5ff7]">
+                        {idx + 1}
+                      </div>
+                      <span className="font-medium text-[#111827]">
+                        {network.network}
+                      </span>
+                    </div>
+                    <span className="text-sm font-bold text-[#111827]">
+                      {formatCompactCurrency(network.volume)}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-[#6b7280]">No network data available</p>
+              )}
+            </div>
+          </Card>
+        </section>
+
+        {/* ── Recent & Health Grid ───────────────────────────────────────– */}
+        <section className="grid gap-6 md:grid-cols-2">
+          {/* Top Users */}
+          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-2xl bg-[#eef2ff] p-3">
+                <Users className="h-5 w-5 text-[#4a5ff7]" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[#111827]">
+                  Top Users
+                </h3>
+                <p className="text-xs text-[#6b7280]">
+                  By transaction volume
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {data.top_performers?.top_users_by_volume && data.top_performers.top_users_by_volume.length > 0 ? (
+                data.top_performers.top_users_by_volume.slice(0, 5).map((user, idx) => (
+                  <div
+                    key={user.user_id}
+                    className="flex items-center justify-between border-b border-[#f1f5f9] pb-4 last:border-b-0"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eef2ff] text-xs font-bold text-[#4a5ff7]">
+                        {idx + 1}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#111827]">
+                          {user.name}
+                        </p>
+                        <p className="text-xs text-[#6b7280]">
+                          {user.transaction_count} transactions
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm font-bold text-[#111827]">
+                      {formatCompactCurrency(user.total_volume)}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-[#6b7280]">No user data available</p>
+              )}
+            </div>
+          </Card>
+
+          {/* System Health */}
+          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-2xl bg-[#eef2ff] p-3">
+                <Activity className="h-5 w-5 text-[#4a5ff7]" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[#111827]">
+                  System Health
+                </h3>
+                <p className="text-xs text-[#6b7280]">
+                  Status and alerts
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-2xl bg-[#f8fafc] p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-[#6b7280]">
+                    Failed Transactions (24h)
+                  </span>
+                  <span className="text-lg font-bold text-[#111827]">
+                    {data.health.transaction_health.failed_last_24h}
                   </span>
                 </div>
               </div>
-            ))}
 
-            <div className="rounded-[22px] border border-[#dbeafe] bg-[#eff6ff] p-4">
-              <div className="flex items-start gap-3">
-                <Send className="mt-0.5 h-5 w-5 text-[#2563eb]" />
-                <div>
-                  <p className="text-sm font-semibold text-[#1e3a8a]">
-                    Notification engine
-                  </p>
-                  <p className="mt-1 text-sm text-[#1d4ed8]">
-                    DB, push, and email notification systems are active.
-                  </p>
+              <div className="rounded-2xl bg-[#f8fafc] p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-[#6b7280]">
+                    Unverified Users
+                  </span>
+                  <span className="text-lg font-bold text-[#111827]">
+                    {data.health.user_health.unverified_users}
+                  </span>
                 </div>
               </div>
-            </div>
-          </div>
-        </Card>
 
-        <Card className="rounded-[28px] border border-[#dbe4ff] bg-[#f8faff] p-6 sm:p-7 shadow-[0_10px_35px_rgba(74,95,247,0.06)]">
-          <div className="flex items-start gap-4">
-            <div className="rounded-2xl bg-[#4a5ff7] p-3">
-              <Settings2 className="h-5 w-5 text-white" />
-            </div>
+              <div className="rounded-2xl bg-[#f8fafc] p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-[#6b7280]">
+                    Active Offer Codes
+                  </span>
+                  <span className="text-lg font-bold text-[#111827]">
+                    {data.health.offers.active_codes}
+                  </span>
+                </div>
+              </div>
 
+              {data.health?.alerts && data.health.alerts.length > 0 && (
+                <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
+                  <p className="text-xs font-semibold text-yellow-700">
+                    Alerts
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    {data.health.alerts.slice(0, 2).map((alert, idx) => (
+                      <p key={idx} className="text-xs text-yellow-600">
+                        • {alert.message}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        </section>
+
+        {/* ── Transaction Trends ─────────────────────────────────────────– */}
+        <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="rounded-2xl bg-[#eef2ff] p-3">
+              <Clock className="h-5 w-5 text-[#4a5ff7]" />
+            </div>
             <div>
-              <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
-                System Health
-              </h2>
-              <p className="mt-2 text-sm leading-7 text-[#6b7280]">
-                Overview of operational modules and internal platform state.
+              <h3 className="font-semibold text-[#111827]">
+                Hourly Breakdown (Today)
+              </h3>
+              <p className="text-xs text-[#6b7280]">
+                Transaction volume by hour
               </p>
             </div>
           </div>
 
-          <div className="mt-6 space-y-3">
-            {moduleHealth.map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center justify-between rounded-2xl border border-[#e6ecff] bg-white px-4 py-3"
-              >
-                <span className="text-sm font-medium text-[#111827]">{item.label}</span>
-                <span
-                  className={classNames(
-                    'rounded-full px-3 py-1 text-xs font-semibold',
-                    item.status === 'Operational'
-                      ? 'bg-green-50 text-green-700'
-                      : 'bg-amber-50 text-amber-700'
-                  )}
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
+            {data.performance?.hourly_trend_today && data.performance.hourly_trend_today.filter((h) => h.transaction_count > 0).length > 0 ? (
+              data.performance.hourly_trend_today.filter((h) => h.transaction_count > 0).map((hour) => (
+                <div
+                  key={hour.hour}
+                  className="rounded-2xl bg-[#f8fafc] p-4 text-center"
                 >
-                  {item.status}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 rounded-[22px] border border-[#c7d2fe] bg-white px-5 py-4">
-            <div className="flex items-start gap-3">
-              <Database className="mt-0.5 h-5 w-5 text-[#4a5ff7]" />
-              <div>
-                <p className="text-sm font-semibold text-[#111827]">
-                  Admin modules covered
-                </p>
-                <p className="mt-1 text-sm leading-6 text-[#6b7280]">
-                  Users, roles, permissions, transactions, VTU services,
-                  notifications, referrals, withdrawals, and airtime-to-cash flows.
-                </p>
-              </div>
-            </div>
+                  <p className="text-xs font-medium text-[#6b7280]">
+                    {hour.hour}:00
+                  </p>
+                  <p className="mt-2 text-lg font-bold text-[#111827]">
+                    {hour.transaction_count}
+                  </p>
+                  <p className="mt-1 text-xs text-[#6b7280]">
+                    {formatCompactCurrency(hour.volume)}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-[#6b7280] col-span-full text-center">No hourly trend data available</p>
+            )}
           </div>
         </Card>
-      </section>
 
-      {/* Bottom action strip */}
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <Link href="/admin/transactions" className="block">
-          <div className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] transition hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.06)]">
-            <div className="rounded-2xl bg-[#eef2ff] p-3 w-fit">
-              <Landmark className="h-5 w-5 text-[#4a5ff7]" />
-            </div>
-            <h3 className="mt-5 text-lg font-bold text-[#111827]">
-              Financial Oversight
-            </h3>
-            <p className="mt-2 text-sm leading-7 text-[#6b7280]">
-              Review transaction flow, revenue, pending payouts, and operational money movement.
-            </p>
-          </div>
-        </Link>
-
-        <Link href="/admin/users" className="block">
-          <div className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] transition hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.06)]">
-            <div className="rounded-2xl bg-[#eef2ff] p-3 w-fit">
-              <UserCog className="h-5 w-5 text-[#4a5ff7]" />
-            </div>
-            <h3 className="mt-5 text-lg font-bold text-[#111827]">
-              User Administration
-            </h3>
-            <p className="mt-2 text-sm leading-7 text-[#6b7280]">
-              Manage users, agent records, access rules, and role assignments from one place.
-            </p>
-          </div>
-        </Link>
-
-        <Link href="/admin/notifications" className="block">
-          <div className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] transition hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.06)]">
-            <div className="rounded-2xl bg-[#eef2ff] p-3 w-fit">
-              <BellRing className="h-5 w-5 text-[#4a5ff7]" />
-            </div>
-            <h3 className="mt-5 text-lg font-bold text-[#111827]">
-              Communication Control
-            </h3>
-            <p className="mt-2 text-sm leading-7 text-[#6b7280]">
-              Track notification delivery across database, push, and email channels.
-            </p>
-          </div>
-        </Link>
-      </section>
+        {/* ── Footer ─────────────────────────────────────────────────────– */}
+        <div className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 text-center">
+          <p className="text-xs text-[#6b7280]">
+            Last updated: {new Date(data.timestamp).toLocaleString()}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

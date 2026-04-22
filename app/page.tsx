@@ -402,7 +402,7 @@ export default function Home() {
             </p>
 
             <div className="mb-8 space-y-3">
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex flex-row gap-3">
                 <a
                   href="#"
                   className="flex-1 inline-flex items-center justify-center gap-3 rounded-xl border border-black/10 bg-black px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-black/90"
@@ -427,7 +427,7 @@ export default function Home() {
               </div>
 
               <a
-                href="#"
+                href="https://tinyurl.com/5drrpnrf"
                 className="w-full inline-flex items-center justify-center gap-3 rounded-xl border border-[#aab9f8] bg-[#aab9f8] px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-[#9aabf0]"
               >
                 <Download size={18} />

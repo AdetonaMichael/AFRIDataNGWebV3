@@ -63,10 +63,6 @@ class AuthService {
 }
 
 class UserService {
-  async getProfile(): Promise<ApiResponse<{ user: User }>> {
-    return apiClient.get('/users/profile');
-  }
-
   async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse<{ user: User }>> {
     const formData = new FormData();
 

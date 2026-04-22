@@ -1,148 +1,123 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-  Activity,
-  ArrowUpRight,
-  BarChart3,
-  CheckCircle2,
+  Wallet,
   CreditCard,
-  TrendingDown,
   TrendingUp,
   Users2,
-  Wallet,
+  CheckCircle2,
+  Smartphone,
+  Shield,
 } from 'lucide-react';
 
 import { Card } from '@/components/shared/Card';
+import { useAuthStore } from '@/store/auth.store';
+import { adminService } from '@/services/admin.service';
 import { Spinner } from '@/components/shared/Spinner';
+import { formatCurrency } from '@/utils/format.utils';
 
-type TrendDirection = 'up' | 'down';
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-type MetricItem = {
-  value: number | string;
-  change: string;
-  trend: TrendDirection;
-};
+interface WalletStats {
+  total_balance_all_users: number;
+  active_wallets: number;
+  average_balance: number;
+  total_transactions: number;
+  transaction_success_rate: number;
+  daily_volume?: { count: number; value: number };
+}
 
-type TopProvider = {
-  name: string;
-  transactions: number;
-  revenue: number;
-};
+interface VTUStats {
+  total_transactions: number;
+  successful_transactions: number;
+  failed_transactions: number;
+  success_rate: number;
+  total_volume: number;
+  total_commission: number;
+  average_transaction: number;
+  by_network?: Record<string, { count: number; volume: number; success_rate?: number }>;
+}
 
-type TopService = {
-  name: string;
-  percentage: number;
-  revenue: number;
-};
+interface UserStats {
+  total_users: number;
+  verified_users: number;
+  unverified_users: number;
+  active_users_30days: number;
+  new_users_this_month: number;
+  new_users_this_week: number;
+  email_verified_users: number;
+  verification_rate: number;
+}
 
-type RevenueTrendItem = {
-  day: string;
-  revenue: number;
-};
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-type ServiceBreakdownItem = {
-  name: string;
-  percentage: number;
-};
-
-type AnalyticsMetrics = {
-  daily_revenue: MetricItem;
-  daily_transactions: MetricItem;
-  success_rate: MetricItem;
-  avg_transaction_value: MetricItem;
-  active_users: MetricItem;
-  new_users: MetricItem;
-  top_provider: TopProvider;
-  top_service: TopService;
-  revenue_trend: RevenueTrendItem[];
-  service_breakdown: ServiceBreakdownItem[];
-};
-
-function formatCurrency(value: number) {
+function formatCompactCurrency(value: number): string {
+  if (value >= 1_000_000) {
+    return `₦${(value / 1_000_000).toFixed(1)}M`;
+  }
+  if (value >= 1_000) {
+    return `₦${(value / 1_000).toFixed(0)}K`;
+  }
   return `₦${value.toLocaleString()}`;
 }
 
-function formatCompactCurrency(value: number) {
-  if (value >= 1000000) return `₦${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `₦${(value / 1000).toFixed(0)}K`;
-  return `₦${value.toLocaleString()}`;
-}
-
-function classNames(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(' ');
-}
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminAnalyticsPage() {
+  const router = useRouter();
+  const { user } = useAuthStore();
+
+  const [walletStats, setWalletStats] = useState<WalletStats | null>(null);
+  const [vtuStats, setVTUStats] = useState<VTUStats | null>(null);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState<AnalyticsMetrics | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // ── Auth guard ──────────────────────────────────────────────────────────────
+
+  const isAdmin = useMemo(
+    () => Boolean(user?.roles?.some((role) => role === 'admin')),
+    [user]
+  );
 
   useEffect(() => {
-    setMetrics({
-      daily_revenue: { value: 2500000, change: '+12%', trend: 'up' },
-      daily_transactions: { value: 1250, change: '+8%', trend: 'up' },
-      success_rate: { value: '98.5%', change: '+0.3%', trend: 'up' },
-      avg_transaction_value: { value: 2000, change: '-5%', trend: 'down' },
-      active_users: { value: 5420, change: '+15%', trend: 'up' },
-      new_users: { value: 180, change: '+22%', trend: 'up' },
-      top_provider: { name: 'MTN', transactions: 450, revenue: 900000 },
-      top_service: { name: 'Airtime', percentage: 45, revenue: 1125000 },
-      revenue_trend: [
-        { day: 'Mon', revenue: 1650000 },
-        { day: 'Tue', revenue: 1820000 },
-        { day: 'Wed', revenue: 1740000 },
-        { day: 'Thu', revenue: 1960000 },
-        { day: 'Fri', revenue: 2250000 },
-        { day: 'Sat', revenue: 2140000 },
-        { day: 'Sun', revenue: 2050000 },
-      ],
-      service_breakdown: [
-        { name: 'Airtime', percentage: 45 },
-        { name: 'Data', percentage: 35 },
-        { name: 'Bills', percentage: 15 },
-        { name: 'Other', percentage: 5 },
-      ],
-    });
-    setLoading(false);
+    if (user && !isAdmin) router.push('/dashboard');
+  }, [user, isAdmin, router]);
+
+  // ── Data fetching ───────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [walletResponse, vtuResponse, userResponse] = await Promise.all([
+          adminService.getWalletStatistics().catch(() => null),
+          adminService.getVTUTransactionStats().catch(() => null),
+          adminService.getUserStats?.().catch(() => null),
+        ]);
+
+        if (walletResponse?.data) setWalletStats(walletResponse.data);
+        if (vtuResponse?.data) setVTUStats(vtuResponse.data);
+        if (userResponse?.data) setUserStats(userResponse.data);
+      } catch (err) {
+        console.error('Error fetching analytics:', err);
+        setError('Failed to load analytics data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
   }, []);
 
-  const revenueMax = useMemo(() => {
-    if (!metrics?.revenue_trend?.length) return 1;
-    return Math.max(...metrics.revenue_trend.map((item) => item.revenue));
-  }, [metrics]);
+  // ── Guard render ────────────────────────────────────────────────────────────
 
-  const summary = useMemo(() => {
-    if (!metrics) return null;
+  if (!isAdmin) return null;
 
-    const dailyRevenue =
-      typeof metrics.daily_revenue.value === 'number'
-        ? metrics.daily_revenue.value
-        : 0;
-
-    const dailyTransactions =
-      typeof metrics.daily_transactions.value === 'number'
-        ? metrics.daily_transactions.value
-        : 0;
-
-    const avgTransaction =
-      typeof metrics.avg_transaction_value.value === 'number'
-        ? metrics.avg_transaction_value.value
-        : 0;
-
-    const activeUsers =
-      typeof metrics.active_users.value === 'number'
-        ? metrics.active_users.value
-        : 0;
-
-    return {
-      dailyRevenue,
-      dailyTransactions,
-      avgTransaction,
-      activeUsers,
-    };
-  }, [metrics]);
-
-  if (loading || !metrics || !summary) {
+  if (loading) {
     return (
       <div className="flex min-h-[70vh] items-center justify-center">
         <div className="text-center">
@@ -150,78 +125,24 @@ export default function AdminAnalyticsPage() {
             <Spinner />
           </div>
           <p className="text-sm font-medium text-[#6b7280]">
-            Loading analytics dashboard...
+            Loading analytics dashboard…
           </p>
         </div>
       </div>
     );
   }
 
-  const statCards = [
-    {
-      label: 'Daily Revenue',
-      value:
-        typeof metrics.daily_revenue.value === 'number'
-          ? formatCurrency(metrics.daily_revenue.value)
-          : metrics.daily_revenue.value,
-      change: metrics.daily_revenue.change,
-      trend: metrics.daily_revenue.trend,
-      icon: Wallet,
-      note: 'Total processed revenue today',
-    },
-    {
-      label: 'Daily Transactions',
-      value:
-        typeof metrics.daily_transactions.value === 'number'
-          ? metrics.daily_transactions.value.toLocaleString()
-          : metrics.daily_transactions.value,
-      change: metrics.daily_transactions.change,
-      trend: metrics.daily_transactions.trend,
-      icon: CreditCard,
-      note: 'All completed platform requests today',
-    },
-    {
-      label: 'Success Rate',
-      value: metrics.success_rate.value.toString(),
-      change: metrics.success_rate.change,
-      trend: metrics.success_rate.trend,
-      icon: CheckCircle2,
-      note: 'Successful transaction completion rate',
-    },
-    {
-      label: 'Active Users',
-      value:
-        typeof metrics.active_users.value === 'number'
-          ? metrics.active_users.value.toLocaleString()
-          : metrics.active_users.value,
-      change: metrics.active_users.change,
-      trend: metrics.active_users.trend,
-      icon: Users2,
-      note: 'Users active on the platform today',
-    },
-    {
-      label: 'New Users',
-      value:
-        typeof metrics.new_users.value === 'number'
-          ? metrics.new_users.value.toLocaleString()
-          : metrics.new_users.value,
-      change: metrics.new_users.change,
-      trend: metrics.new_users.trend,
-      icon: Activity,
-      note: 'New signups recorded today',
-    },
-    {
-      label: 'Avg Transaction Value',
-      value:
-        typeof metrics.avg_transaction_value.value === 'number'
-          ? formatCurrency(metrics.avg_transaction_value.value)
-          : metrics.avg_transaction_value.value,
-      change: metrics.avg_transaction_value.change,
-      trend: metrics.avg_transaction_value.trend,
-      icon: BarChart3,
-      note: 'Average spend per transaction',
-    },
-  ];
+  if (error) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <div className="text-center">
+          <p className="text-sm font-medium text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div
@@ -235,7 +156,7 @@ export default function AdminAnalyticsPage() {
         }
       `}</style>
 
-      {/* Hero */}
+      {/* ── Hero Section ──────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden rounded-[30px] border border-[#e5e7eb] bg-[#0b1220] px-6 py-8 sm:px-8 sm:py-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(74,95,247,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.06),transparent_24%)]" />
 
@@ -244,282 +165,324 @@ export default function AdminAnalyticsPage() {
             <span className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#c7d2fe]">
               Admin Intelligence
             </span>
-
             <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
               Analytics Dashboard
             </h1>
-
             <p className="mt-3 max-w-xl text-sm leading-7 text-[#cbd5e1] sm:text-base">
-              Monitor revenue flow, transaction volume, platform performance, and
-              user growth from one executive-level command view.
+              Real-time platform performance metrics: wallet balances, VTU transactions,
+              user growth, and network performance.
             </p>
-          </div>
-
-          <div className="grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Revenue Today
-              </p>
-              <p className="mt-3 text-2xl font-bold text-white">
-                {formatCompactCurrency(summary.dailyRevenue)}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Transactions
-              </p>
-              <p className="mt-3 text-2xl font-bold text-white">
-                {summary.dailyTransactions.toLocaleString()}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Active Users
-              </p>
-              <p className="mt-3 text-2xl font-bold text-white">
-                {summary.activeUsers.toLocaleString()}
-              </p>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* KPI Cards */}
-      <section className="flex overflow-x-auto gap-5 pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 md:overflow-x-visible xl:grid-cols-3">
-        {statCards.map((metric) => {
-          const Icon = metric.icon;
-          const isUp = metric.trend === 'up';
-
-          return (
-            <Card
-              key={metric.label}
-              className="min-w-full md:min-w-auto rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] snap-start md:snap-start"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium text-[#6b7280]">{metric.label}</p>
-                  <p className="mt-3 text-3xl font-extrabold tracking-tight text-[#111827]">
-                    {metric.value}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-[#6b7280]">
-                    {metric.note}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-[#eef2ff] p-3">
-                  <Icon className="h-5 w-5 text-[#4a5ff7]" />
-                </div>
-              </div>
-
-              <div className="mt-5 flex items-center gap-2">
-                <div
-                  className={classNames(
-                    'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold',
-                    isUp
-                      ? 'bg-green-50 text-green-700'
-                      : 'bg-red-50 text-red-700'
-                  )}
-                >
-                  {isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                  {metric.change}
-                </div>
-                <span className="text-xs text-[#9ca3af]">vs previous period</span>
-              </div>
-            </Card>
-          );
-        })}
-      </section>
-
-      {/* Revenue Trend + Service Breakdown */}
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-7 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-          <div className="mb-6 flex items-end justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
-                Revenue Trend
-              </h2>
-              <p className="mt-1 text-sm text-[#6b7280]">
-                Revenue performance across the last 7 days.
-              </p>
-            </div>
-
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#eef2ff] px-3 py-1 text-xs font-semibold text-[#4a5ff7]">
-              <ArrowUpRight size={14} />
-              Weekly overview
-            </div>
+      {/* ── Wallet Stats Section ──────────────────────────────────────────── */}
+      {walletStats && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold text-[#111827]">Wallet Statistics</h2>
+            <p className="mt-1 text-sm text-[#6b7280]">
+              Platform wallet balances and transaction metrics
+            </p>
           </div>
 
-          <div className="space-y-5">
-            {metrics.revenue_trend.map((item) => {
-              const width = `${(item.revenue / revenueMax) * 100}%`;
-
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                label: 'Total Balance',
+                value: formatCompactCurrency(walletStats.total_balance_all_users),
+                icon: Wallet,
+                color: 'bg-blue-50 text-blue-600',
+              },
+              {
+                label: 'Active Wallets',
+                value: walletStats.active_wallets.toLocaleString(),
+                icon: Users2,
+                color: 'bg-purple-50 text-purple-600',
+              },
+              {
+                label: 'Avg. Balance',
+                value: formatCurrency(walletStats.average_balance),
+                icon: CreditCard,
+                color: 'bg-emerald-50 text-emerald-600',
+              },
+              {
+                label: 'Success Rate',
+                value: `${walletStats.transaction_success_rate.toFixed(1)}%`,
+                icon: CheckCircle2,
+                color: 'bg-green-50 text-green-600',
+              },
+            ].map((metric) => {
+              const Icon = metric.icon;
               return (
-                <div key={item.day} className="grid grid-cols-[48px_1fr_auto] items-center gap-4">
-                  <span className="text-sm font-semibold text-[#6b7280]">{item.day}</span>
-
-                  <div className="h-3 overflow-hidden rounded-full bg-[#eef2f7]">
-                    <div
-                      className="h-full rounded-full bg-[linear-gradient(90deg,#4a5ff7_0%,#a9b7ff_100%)]"
-                      style={{ width }}
-                    />
+                <Card key={metric.label} className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-[#6b7280]">
+                        {metric.label}
+                      </p>
+                      <p className="mt-3 text-2xl font-bold text-[#111827]">
+                        {metric.value}
+                      </p>
+                    </div>
+                    <div className={`rounded-2xl ${metric.color} p-3`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
                   </div>
-
-                  <span className="text-sm font-bold text-[#111827]">
-                    {formatCompactCurrency(item.revenue)}
-                  </span>
-                </div>
+                </Card>
               );
             })}
           </div>
-        </Card>
 
-        <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-7 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
-              Service Breakdown
-            </h2>
+          {walletStats.daily_volume && (
+            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+              <h3 className="font-semibold text-[#111827]">Today's Volume</h3>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div className="rounded-2xl bg-[#f8fafc] p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Transactions
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-[#111827]">
+                    {walletStats.daily_volume.count.toLocaleString()}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-[#f8fafc] p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Volume
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-[#111827]">
+                    {formatCompactCurrency(walletStats.daily_volume.value)}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
+        </section>
+      )}
+
+      {/* ── VTU Stats Section ────────────────────────────────────────────── */}
+      {vtuStats && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold text-[#111827]">VTU Transactions</h2>
             <p className="mt-1 text-sm text-[#6b7280]">
-              Distribution of transaction volume by service category.
+              Airtime, data, bills, and other VTU service performance
             </p>
           </div>
 
-          <div className="space-y-5">
-            {metrics.service_breakdown.map((service, index) => (
-              <div key={service.name}>
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-[#111827]">
-                    {service.name}
-                  </span>
-                  <span className="text-sm font-bold text-[#4a5ff7]">
-                    {service.percentage}%
-                  </span>
-                </div>
-
-                <div className="h-3 overflow-hidden rounded-full bg-[#eef2f7]">
-                  <div
-                    className={classNames(
-                      'h-full rounded-full',
-                      index === 0 && 'bg-[#4a5ff7]',
-                      index === 1 && 'bg-[#7c8cff]',
-                      index === 2 && 'bg-[#a9b7ff]',
-                      index === 3 && 'bg-[#cfd6ff]'
-                    )}
-                    style={{ width: `${service.percentage}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                label: 'Total Transactions',
+                value: vtuStats.total_transactions.toLocaleString(),
+                icon: CreditCard,
+                color: 'bg-orange-50 text-orange-600',
+              },
+              {
+                label: 'Successful',
+                value: vtuStats.successful_transactions.toLocaleString(),
+                icon: CheckCircle2,
+                color: 'bg-green-50 text-green-600',
+              },
+              {
+                label: 'Success Rate',
+                value: `${vtuStats.success_rate.toFixed(1)}%`,
+                icon: TrendingUp,
+                color: 'bg-blue-50 text-blue-600',
+              },
+              {
+                label: 'Total Volume',
+                value: formatCompactCurrency(vtuStats.total_volume),
+                icon: Wallet,
+                color: 'bg-purple-50 text-purple-600',
+              },
+            ].map((metric) => {
+              const Icon = metric.icon;
+              return (
+                <Card key={metric.label} className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-[#6b7280]">
+                        {metric.label}
+                      </p>
+                      <p className="mt-3 text-2xl font-bold text-[#111827]">
+                        {metric.value}
+                      </p>
+                    </div>
+                    <div className={`rounded-2xl ${metric.color} p-3`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
-        </Card>
-      </section>
 
-      {/* Top Provider / Top Service / Snapshot */}
-      <section className="flex overflow-x-auto gap-6 pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:overflow-x-visible xl:grid-cols-3">
-        <Card className="min-w-full md:min-w-auto rounded-[28px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] snap-start md:snap-start">
-          <h2 className="text-xl font-bold tracking-tight text-[#111827]">
-            Top Provider
-          </h2>
-
-          <div className="mt-5 rounded-[24px] border border-[#dbe4ff] bg-[#f7f8ff] p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#4a5ff7]">
-              Leading network
-            </p>
-            <p className="mt-3 text-3xl font-extrabold tracking-tight text-[#111827]">
-              {metrics.top_provider.name}
-            </p>
-
-            <div className="mt-6 grid grid-cols-2 gap-4">
-              <div className="rounded-2xl bg-white p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                  Transactions
-                </p>
-                <p className="mt-2 text-2xl font-bold text-[#111827]">
-                  {metrics.top_provider.transactions.toLocaleString()}
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-white p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                  Revenue
-                </p>
-                <p className="mt-2 text-2xl font-bold text-[#111827]">
-                  {formatCompactCurrency(metrics.top_provider.revenue)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="min-w-full md:min-w-auto rounded-[28px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] snap-start md:snap-start">
-          <h2 className="text-xl font-bold tracking-tight text-[#111827]">
-            Top Service
-          </h2>
-
-          <div className="mt-5 rounded-[24px] border border-[#dcfce7] bg-[#f0fdf4] p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-green-700">
-              Best-performing category
-            </p>
-            <p className="mt-3 text-3xl font-extrabold tracking-tight text-[#111827]">
-              {metrics.top_service.name}
-            </p>
-
-            <div className="mt-6 grid grid-cols-2 gap-4">
-              <div className="rounded-2xl bg-white p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                  Share
-                </p>
-                <p className="mt-2 text-2xl font-bold text-[#111827]">
-                  {metrics.top_service.percentage}%
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-white p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                  Revenue
-                </p>
-                <p className="mt-2 text-2xl font-bold text-[#111827]">
-                  {formatCompactCurrency(metrics.top_service.revenue)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="min-w-full md:min-w-auto rounded-[28px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] snap-start md:snap-start">
-          <h2 className="text-xl font-bold tracking-tight text-[#111827]">
-            Executive Snapshot
-          </h2>
-
-          <div className="mt-5 space-y-4">
-            <div className="rounded-2xl bg-[#f8fafc] p-4">
-              <p className="text-sm font-medium text-[#6b7280]">Revenue per active user</p>
-              <p className="mt-2 text-2xl font-bold text-[#111827]">
-                {summary.activeUsers > 0
-                  ? formatCurrency(
-                      Math.round(summary.dailyRevenue / summary.activeUsers)
-                    )
-                  : '₦0'}
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+              <h3 className="font-semibold text-[#111827]">Commissions</h3>
+              <p className="mt-2 text-3xl font-bold text-[#111827]">
+                {formatCompactCurrency(vtuStats.total_commission)}
               </p>
-            </div>
-
-            <div className="rounded-2xl bg-[#f8fafc] p-4">
-              <p className="text-sm font-medium text-[#6b7280]">Average transaction value</p>
-              <p className="mt-2 text-2xl font-bold text-[#111827]">
-                {formatCurrency(summary.avgTransaction)}
+              <p className="mt-1 text-xs text-[#6b7280]">
+                Total earned commissions
               </p>
-            </div>
+            </Card>
 
-            <div className="rounded-2xl bg-[#f8fafc] p-4">
-              <p className="text-sm font-medium text-[#6b7280]">Health indicator</p>
-              <p className="mt-2 text-base font-semibold text-green-700">
-                Strong daily operational performance
+            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+              <h3 className="font-semibold text-[#111827]">Avg. Transaction</h3>
+              <p className="mt-2 text-3xl font-bold text-[#111827]">
+                {formatCurrency(vtuStats.average_transaction)}
               </p>
-            </div>
+              <p className="mt-1 text-xs text-[#6b7280]">
+                Average per transaction
+              </p>
+            </Card>
           </div>
+
+          {/* Network Breakdown */}
+          {vtuStats.by_network && Object.keys(vtuStats.by_network).length > 0 && (
+            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+              <h3 className="font-semibold text-[#111827]">Network Performance</h3>
+              <div className="mt-4 space-y-4">
+                {Object.entries(vtuStats.by_network).map(([network, data]) => (
+                  <div key={network} className="flex items-center justify-between border-b border-[#f1f5f9] pb-4 last:border-b-0">
+                    <div>
+                      <p className="font-semibold text-[#111827]">{network}</p>
+                      <p className="text-sm text-[#6b7280]">
+                        {data.count} transactions
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-[#111827]">
+                        {formatCompactCurrency(data.volume)}
+                      </p>
+                      <p className="text-sm text-green-600">
+                        {(data.success_rate ?? 0).toFixed(1)}% success
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+        </section>
+      )}
+
+      {/* ── User Stats Section ────────────────────────────────────────────── */}
+      {userStats && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold text-[#111827]">User Statistics</h2>
+            <p className="mt-1 text-sm text-[#6b7280]">
+              User growth, verification rates, and active sessions
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                label: 'Total Users',
+                value: userStats.total_users.toLocaleString(),
+                icon: Users2,
+                color: 'bg-blue-50 text-blue-600',
+              },
+              {
+                label: 'Verified Users',
+                value: userStats.verified_users.toLocaleString(),
+                icon: Shield,
+                color: 'bg-green-50 text-green-600',
+              },
+              {
+                label: 'Active (30d)',
+                value: userStats.active_users_30days.toLocaleString(),
+                icon: TrendingUp,
+                color: 'bg-emerald-50 text-emerald-600',
+              },
+              {
+                label: 'Verification Rate',
+                value: `${userStats.verification_rate.toFixed(1)}%`,
+                icon: CheckCircle2,
+                color: 'bg-purple-50 text-purple-600',
+              },
+            ].map((metric) => {
+              const Icon = metric.icon;
+              return (
+                <Card key={metric.label} className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-[#6b7280]">
+                        {metric.label}
+                      </p>
+                      <p className="mt-3 text-2xl font-bold text-[#111827]">
+                        {metric.value}
+                      </p>
+                    </div>
+                    <div className={`rounded-2xl ${metric.color} p-3`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+              <h3 className="font-semibold text-[#111827]">New This Month</h3>
+              <p className="mt-2 text-3xl font-bold text-[#111827]">
+                {userStats.new_users_this_month.toLocaleString()}
+              </p>
+              <p className="mt-1 text-xs text-[#6b7280]">
+                New user registrations this month
+              </p>
+            </Card>
+
+            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+              <h3 className="font-semibold text-[#111827]">New This Week</h3>
+              <p className="mt-2 text-3xl font-bold text-[#111827]">
+                {userStats.new_users_this_week.toLocaleString()}
+              </p>
+              <p className="mt-1 text-xs text-[#6b7280]">
+                New user registrations this week
+              </p>
+            </Card>
+
+            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+              <h3 className="font-semibold text-[#111827]">Email Verified</h3>
+              <p className="mt-2 text-3xl font-bold text-[#111827]">
+                {userStats.email_verified_users.toLocaleString()}
+              </p>
+              <p className="mt-1 text-xs text-[#6b7280]">
+                Users with verified email addresses
+              </p>
+            </Card>
+
+            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+              <h3 className="font-semibold text-[#111827]">Unverified</h3>
+              <p className="mt-2 text-3xl font-bold text-[#111827]">
+                {userStats.unverified_users.toLocaleString()}
+              </p>
+              <p className="mt-1 text-xs text-[#6b7280]">
+                Users pending verification
+              </p>
+            </Card>
+          </div>
+        </section>
+      )}
+
+      {/* ── Empty State ────────────────────────────────────────────────────– */}
+      {!walletStats && !vtuStats && !userStats && (
+        <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-12 text-center">
+          <Smartphone className="mx-auto h-12 w-12 text-[#d1d5db]" />
+          <p className="mt-4 text-sm font-medium text-[#6b7280]">
+            No analytics data available yet
+          </p>
+          <p className="mt-1 text-xs text-[#9ca3af]">
+            Statistics will appear here once transactions and users are recorded.
+          </p>
         </Card>
-      </section>
+      )}
     </div>
   );
 }

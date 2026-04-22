@@ -1,138 +1,233 @@
 'use client';
 
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
 import {
-  ChevronLeft,
-  ChevronRight,
   Eye,
-  Filter,
-  Search,
-  ShieldCheck,
+  Shield,
+  Users2,
   UserCheck,
   UserMinus,
-  Users2,
+  ShieldCheck,
+  Search,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
-import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
-import { Spinner } from '@/components/shared/Spinner';
 import { Badge } from '@/components/shared/Badge';
 import { Input } from '@/components/shared/Input';
+import { Card } from '@/components/shared/Card';
+import { Modal } from '@/components/shared/Modal';
+import { useAuthStore } from '@/store/auth.store';
+import { adminService } from '@/services/admin.service';
+import { formatDate } from '@/utils/format.utils';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type UserStatus = 'active' | 'suspended' | 'inactive';
 
-type AdminUser = {
-  id: string;
+interface AdminUser {
+  id: string | number;
   first_name: string;
   last_name: string;
   email: string;
-  phone: string;
-  status: UserStatus;
-  created_at: string;
-  transactions: number;
-};
-
-function classNames(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(' ');
+  phone_number?: string;
+  is_verified?: boolean;
+  balance_major?: number;
+  status?: UserStatus;
+  created_at?: string;
+  transactions?: number;
 }
 
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('en-NG', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getStatusVariant(
+  status?: UserStatus | string
+): 'success' | 'danger' | 'warning' | 'info' {
+  const map: Record<string, 'success' | 'danger' | 'warning' | 'info'> = {
+    active: 'success',
+    suspended: 'danger',
+    inactive: 'warning',
+  };
+  return map[status ?? ''] ?? 'info';
 }
 
-function getStatusVariant(status: UserStatus) {
-  if (status === 'active') return 'success';
-  if (status === 'suspended') return 'danger';
-  return 'warning';
+function Spinner() {
+  return (
+    <svg
+      className="h-6 w-6 animate-spin text-[#4a5ff7]"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8v8H4z"
+      />
+    </svg>
+  );
 }
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminUsersPage() {
+  const router = useRouter();
+  const { user } = useAuthStore();
+
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | UserStatus>('all');
 
-  useEffect(() => {
-    setUsers([
-      {
-        id: '1',
-        first_name: 'John',
-        last_name: 'Doe',
-        email: 'john@example.com',
-        phone: '+234801234567',
-        status: 'active',
-        created_at: '2024-01-15',
-        transactions: 25,
-      },
-      {
-        id: '2',
-        first_name: 'Jane',
-        last_name: 'Smith',
-        email: 'jane@example.com',
-        phone: '+234802345678',
-        status: 'active',
-        created_at: '2024-01-20',
-        transactions: 12,
-      },
-      {
-        id: '3',
-        first_name: 'Mike',
-        last_name: 'Johnson',
-        email: 'mike@example.com',
-        phone: '+234803456789',
-        status: 'suspended',
-        created_at: '2024-02-01',
-        transactions: 5,
-      },
-      {
-        id: '4',
-        first_name: 'Ruth',
-        last_name: 'Adams',
-        email: 'ruth@example.com',
-        phone: '+234804123456',
-        status: 'inactive',
-        created_at: '2024-02-07',
-        transactions: 0,
-      },
-    ]);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('');
+  const [loadingRoles, setLoadingRoles] = useState(false);
 
-    setLoading(false);
-  }, []);
+  // ── Auth guard ──────────────────────────────────────────────────────────────
+
+  const isAdmin = useMemo(
+    () => Boolean(user?.roles?.some((role) => role === 'admin')),
+    [user]
+  );
+
+  useEffect(() => {
+    if (user && !isAdmin) router.push('/dashboard');
+  }, [user, isAdmin, router]);
+
+  // ── Data fetching ───────────────────────────────────────────────────────────
+
+  const fetchUsers = async (page = 1) => {
+    try {
+      setLoading(true);
+      const response = await adminService.getUsers(page, 50, {
+        search: searchTerm,
+        status: statusFilter === 'all' ? '' : statusFilter,
+        verified: '',
+      });
+
+      if (response?.data) {
+        const userData = Array.isArray(response.data)
+          ? response.data
+          : response.data.data ?? [];
+        setUsers(userData);
+        if (response.data.pagination) {
+          setTotalPages(response.data.pagination.last_page ?? 1);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      setLoadingRoles(true);
+      const response = await adminService.getRoles();
+      console.log('[AdminUsers] Roles response:', { response });
+      
+      // API returns roles array directly or in response.data
+      let rolesData = [];
+      if (Array.isArray(response)) {
+        rolesData = response;
+      } else if (Array.isArray(response.data)) {
+        rolesData = response.data;
+      } else if (response?.data && Array.isArray(response.data)) {
+        rolesData = response.data;
+      }
+      
+      console.log('[AdminUsers] Processed roles:', { rolesData });
+      setRoles(rolesData);
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      setRoles([]);
+    } finally {
+      setLoadingRoles(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers(currentPage);
+    if (roles.length === 0) fetchRoles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, searchTerm, statusFilter]);
+
+  // ── Actions ─────────────────────────────────────────────────────────────────
+
+  const handleOpenRoleModal = async (user: AdminUser) => {
+    setSelectedUser(user);
+    setSelectedRole('');
+    
+    // Fetch roles if not already loaded
+    if (roles.length === 0) {
+      await fetchRoles();
+    }
+    
+    setShowRoleModal(true);
+  };
+
+  const handleAssignRole = async () => {
+    if (!selectedUser || !selectedRole) return;
+    try {
+      await adminService.assignRoleToUser(
+        Number(selectedUser.id),
+        Number(selectedRole)
+      );
+      setShowRoleModal(false);
+      setSelectedRole('');
+      fetchUsers(currentPage);
+    } catch (error) {
+      console.error('Error assigning role:', error);
+    }
+  };
+
+  // ── Derived state ───────────────────────────────────────────────────────────
 
   const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
-      const term = searchTerm.toLowerCase();
-
+    const term = searchTerm.toLowerCase();
+    return users.filter((u) => {
+      const fullName = `${u.first_name} ${u.last_name}`.toLowerCase();
       const matchesSearch =
         fullName.includes(term) ||
-        user.email.toLowerCase().includes(term) ||
-        user.phone.includes(searchTerm);
-
+        u.email.toLowerCase().includes(term) ||
+        (u.phone_number ?? '').includes(searchTerm);
       const matchesStatus =
-        statusFilter === 'all' || user.status === statusFilter;
-
+        statusFilter === 'all' || u.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [users, searchTerm, statusFilter]);
 
   const summary = useMemo(() => {
-    const active = users.filter((user) => user.status === 'active').length;
-    const suspended = users.filter((user) => user.status === 'suspended').length;
-    const inactive = users.filter((user) => user.status === 'inactive').length;
-
-    return {
-      total: users.length,
-      active,
-      suspended,
-      inactive,
-    };
+    const active = users.filter(
+      (u) => u.status === 'active' || !u.status
+    ).length;
+    const suspended = users.filter((u) => u.status === 'suspended').length;
+    const inactive = users.filter((u) => u.status === 'inactive').length;
+    return { total: users.length, active, suspended, inactive };
   }, [users]);
+
+  // ── Guard render ────────────────────────────────────────────────────────────
+
+  if (!isAdmin) return null;
 
   if (loading) {
     return (
@@ -141,13 +236,13 @@ export default function AdminUsersPage() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef2ff]">
             <Spinner />
           </div>
-          <p className="text-sm font-medium text-[#6b7280]">
-            Loading users...
-          </p>
+          <p className="text-sm font-medium text-[#6b7280]">Loading users…</p>
         </div>
       </div>
     );
   }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div
@@ -161,122 +256,70 @@ export default function AdminUsersPage() {
         }
       `}</style>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-[30px] border border-[#e5e7eb] bg-[#0b1220] px-6 py-8 sm:px-8 sm:py-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(74,95,247,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.06),transparent_24%)]" />
 
-        <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#c7d2fe]">
-              Admin User Management
-            </span>
 
-            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              User Management
-            </h1>
-
-            <p className="mt-3 max-w-xl text-sm leading-7 text-[#cbd5e1] sm:text-base">
-              Monitor user accounts, filter statuses, review account activity,
-              and manage customer access from one admin control surface.
-            </p>
-          </div>
-
-          <div className="grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Total Users
-              </p>
-              <p className="mt-3 text-2xl font-bold text-white">
-                {summary.total}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Active Users
-              </p>
-              <p className="mt-3 text-2xl font-bold text-white">
-                {summary.active}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
-                Suspended
-              </p>
-              <p className="mt-3 text-2xl font-bold text-white">
-                {summary.suspended}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Summary cards */}
-      <section className="flex overflow-x-auto gap-5 pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 md:overflow-x-visible xl:grid-cols-4">
+      {/* ── Summary cards ────────────────────────────────────────────────── */}
+      <section className="flex gap-5 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 md:overflow-x-visible xl:grid-cols-4">
         {[
           {
             title: 'All Users',
             value: summary.total,
             note: 'Registered user accounts',
-            icon: Users2,
+            Icon: Users2,
           },
           {
             title: 'Active Accounts',
             value: summary.active,
             note: 'Users currently active',
-            icon: UserCheck,
+            Icon: UserCheck,
           },
           {
             title: 'Suspended Accounts',
             value: summary.suspended,
             note: 'Restricted user accounts',
-            icon: ShieldCheck,
+            Icon: ShieldCheck,
           },
           {
             title: 'Inactive Accounts',
             value: summary.inactive,
             note: 'Dormant or unused accounts',
-            icon: UserMinus,
+            Icon: UserMinus,
           },
-        ].map((item) => {
-          const Icon = item.icon;
-
-          return (
-            <Card
-              key={item.title}
-              className="min-w-full md:min-w-auto rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] snap-start md:snap-start"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium text-[#6b7280]">{item.title}</p>
-                  <p className="mt-3 text-3xl font-extrabold tracking-tight text-[#111827]">
-                    {item.value}
-                  </p>
-                  <p className="mt-2 text-sm text-[#6b7280]">{item.note}</p>
-                </div>
-
-                <div className="rounded-2xl bg-[#eef2ff] p-3">
-                  <Icon className="h-5 w-5 text-[#4a5ff7]" />
-                </div>
+        ].map(({ title, value, note, Icon }) => (
+          <Card
+            key={title}
+            className="min-w-full snap-start rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] md:min-w-0"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-[#6b7280]">{title}</p>
+                <p className="mt-3 text-3xl font-extrabold tracking-tight text-[#111827]">
+                  {value}
+                </p>
+                <p className="mt-2 text-sm text-[#6b7280]">{note}</p>
               </div>
-            </Card>
-          );
-        })}
+              <div className="rounded-2xl bg-[#eef2ff] p-3">
+                <Icon className="h-5 w-5 text-[#4a5ff7]" />
+              </div>
+            </div>
+          </Card>
+        ))}
       </section>
 
-      {/* Filters */}
-      <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-5 sm:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+      {/* ── Filters ──────────────────────────────────────────────────────── */}
+      <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-5 shadow-[0_10px_35px_rgba(0,0,0,0.04)] sm:p-6">
         <div className="mb-5">
           <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
             Filters
           </h2>
           <p className="mt-1 text-sm text-[#6b7280]">
-            Search by name, email, or phone and narrow results by account status.
+            Search by name, email, or phone and narrow results by account
+            status.
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_220px_220px]">
+          {/* Search */}
           <div className="relative">
             <Search
               className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9ca3af]"
@@ -284,13 +327,17 @@ export default function AdminUsersPage() {
             />
             <Input
               label="Search"
-              placeholder="Search by name, email, or phone..."
+              placeholder="Search by name, email, or phone…"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
               className="pl-11"
             />
           </div>
 
+          {/* Status */}
           <div>
             <label className="mb-2 block text-sm font-semibold text-[#374151]">
               Status Filter
@@ -302,9 +349,10 @@ export default function AdminUsersPage() {
               />
               <select
                 value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(e.target.value as 'all' | UserStatus)
-                }
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as 'all' | UserStatus);
+                  setCurrentPage(1);
+                }}
                 className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white pl-11 pr-4 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
               >
                 <option value="all">All Status</option>
@@ -315,6 +363,7 @@ export default function AdminUsersPage() {
             </div>
           </div>
 
+          {/* Count */}
           <div className="flex items-end">
             <div className="flex h-11 w-full items-center rounded-xl border border-[#e5e7eb] bg-[#fafafa] px-4 text-sm font-medium text-[#6b7280]">
               Showing {filteredUsers.length} of {users.length} users
@@ -323,7 +372,7 @@ export default function AdminUsersPage() {
         </div>
       </Card>
 
-      {/* Table */}
+      {/* ── Table ────────────────────────────────────────────────────────── */}
       <Card className="overflow-hidden rounded-[28px] border border-[#e5e7eb] bg-white p-0 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
         <div className="border-b border-[#f1f5f9] px-6 py-5">
           <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
@@ -353,84 +402,104 @@ export default function AdminUsersPage() {
               <table className="w-full min-w-full">
                 <thead>
                   <tr className="border-b border-[#f1f5f9] bg-[#fcfcfd]">
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
-                      User
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
-                      Email
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
-                      Phone
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
-                      Transactions
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
-                      Joined
-                    </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
-                      Action
-                    </th>
+                    {[
+                      'User',
+                      'Email',
+                      'Phone',
+                      'Status',
+                      'Verified',
+                      'Joined',
+                      'Actions',
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className={`px-6 py-4 text-xs font-semibold uppercase tracking-wide text-[#6b7280] ${
+                          h === 'Actions' ? 'text-right' : 'text-left'
+                        }`}
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
 
                 <tbody>
-                  {filteredUsers.map((user) => (
+                  {filteredUsers.map((u) => (
                     <tr
-                      key={user.id}
+                      key={u.id}
                       className="border-b border-[#f8fafc] transition-colors hover:bg-[#fafafa]"
                     >
+                      {/* User */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#eef2ff] text-sm font-bold text-[#4a5ff7]">
-                            {user.first_name.charAt(0)}
-                            {user.last_name.charAt(0)}
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#eef2ff] text-sm font-bold text-[#4a5ff7]">
+                            {u.first_name.charAt(0)}
+                            {u.last_name.charAt(0)}
                           </div>
                           <div>
                             <p className="text-sm font-semibold text-[#111827]">
-                              {user.first_name} {user.last_name}
+                              {u.first_name} {u.last_name}
                             </p>
-                            <p className="text-xs text-[#9ca3af]">ID: {user.id}</p>
+                            <p className="text-xs text-[#9ca3af]">
+                              ID: {u.id}
+                            </p>
                           </div>
                         </div>
                       </td>
 
+                      {/* Email */}
                       <td className="px-6 py-4 text-sm text-[#6b7280]">
-                        {user.email}
+                        {u.email}
                       </td>
 
+                      {/* Phone */}
                       <td className="px-6 py-4 text-sm text-[#6b7280]">
-                        {user.phone}
+                        {u.phone_number ?? '—'}
                       </td>
 
+                      {/* Status */}
                       <td className="px-6 py-4">
-                        <Badge
-                          variant={getStatusVariant(user.status) as any}
-                          size="sm"
-                        >
-                          {user.status}
+                        <Badge variant={getStatusVariant(u.status)} size="sm">
+                          {u.status ?? 'active'}
                         </Badge>
                       </td>
 
-                      <td className="px-6 py-4 text-sm font-semibold text-[#111827]">
-                        {user.transactions}
-                      </td>
-
-                      <td className="px-6 py-4 text-sm text-[#6b7280]">
-                        {formatDate(user.created_at)}
-                      </td>
-
-                      <td className="px-6 py-4 text-right">
-                        <Link
-                          href={`/admin/users/${user.id}`}
-                          className="inline-flex items-center gap-2 text-sm font-semibold text-[#4a5ff7] hover:underline"
+                      {/* Verified */}
+                      <td className="px-6 py-4">
+                        <Badge
+                          variant={u.is_verified ? 'success' : 'warning'}
+                          size="sm"
                         >
-                          <Eye size={15} />
-                          View
-                        </Link>
+                          {u.is_verified ? 'Verified' : 'Unverified'}
+                        </Badge>
+                      </td>
+
+                      {/* Joined */}
+                      <td className="px-6 py-4 text-sm text-[#6b7280]">
+                        {formatDate(u.created_at ?? '')}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedUser(u);
+                              setShowDetails(true);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#4a5ff7] transition hover:bg-[#eef2ff]"
+                          >
+                            <Eye size={15} />
+                            View
+                          </button>
+                          <button
+                            onClick={() => handleOpenRoleModal(u)}
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#6b7280] transition hover:bg-[#f1f5f9]"
+                          >
+                            <Shield size={15} />
+                            Role
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -440,31 +509,26 @@ export default function AdminUsersPage() {
 
             {/* Mobile cards */}
             <div className="space-y-4 p-4 xl:hidden">
-              {filteredUsers.map((user) => (
+              {filteredUsers.map((u) => (
                 <div
-                  key={user.id}
+                  key={u.id}
                   className="rounded-[22px] border border-[#edf2f7] bg-[#fcfcfd] p-4"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#eef2ff] text-sm font-bold text-[#4a5ff7]">
-                        {user.first_name.charAt(0)}
-                        {user.last_name.charAt(0)}
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#eef2ff] text-sm font-bold text-[#4a5ff7]">
+                        {u.first_name.charAt(0)}
+                        {u.last_name.charAt(0)}
                       </div>
-
                       <div>
                         <p className="text-base font-bold text-[#111827]">
-                          {user.first_name} {user.last_name}
+                          {u.first_name} {u.last_name}
                         </p>
-                        <p className="text-sm text-[#6b7280]">{user.email}</p>
+                        <p className="text-sm text-[#6b7280]">{u.email}</p>
                       </div>
                     </div>
-
-                    <Badge
-                      variant={getStatusVariant(user.status) as any}
-                      size="sm"
-                    >
-                      {user.status}
+                    <Badge variant={getStatusVariant(u.status)} size="sm">
+                      {u.status ?? 'active'}
                     </Badge>
                   </div>
 
@@ -473,35 +537,49 @@ export default function AdminUsersPage() {
                       <p className="text-xs font-medium uppercase tracking-wide text-[#9ca3af]">
                         Phone
                       </p>
-                      <p className="mt-1 text-sm text-[#111827]">{user.phone}</p>
+                      <p className="mt-1 text-sm text-[#111827]">
+                        {u.phone_number ?? '—'}
+                      </p>
                     </div>
-
                     <div>
                       <p className="text-xs font-medium uppercase tracking-wide text-[#9ca3af]">
-                        Transactions
+                        Verified
                       </p>
-                      <p className="mt-1 text-sm font-semibold text-[#111827]">
-                        {user.transactions}
+                      <p className="mt-1">
+                        <Badge
+                          variant={u.is_verified ? 'success' : 'warning'}
+                          size="sm"
+                        >
+                          {u.is_verified ? 'Verified' : 'Unverified'}
+                        </Badge>
                       </p>
                     </div>
-
                     <div>
                       <p className="text-xs font-medium uppercase tracking-wide text-[#9ca3af]">
                         Joined
                       </p>
                       <p className="mt-1 text-sm text-[#111827]">
-                        {formatDate(user.created_at)}
+                        {formatDate(u.created_at ?? '')}
                       </p>
                     </div>
-
-                    <div className="flex items-end justify-end">
-                      <Link
-                        href={`/admin/users/${user.id}`}
-                        className="inline-flex items-center gap-2 text-sm font-semibold text-[#4a5ff7] hover:underline"
+                    <div className="flex items-end justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedUser(u);
+                          setShowDetails(true);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#4a5ff7] transition hover:bg-[#eef2ff]"
                       >
                         <Eye size={15} />
                         View
-                      </Link>
+                      </button>
+                      <button
+                        onClick={() => handleOpenRoleModal(u)}
+                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#6b7280] transition hover:bg-[#f1f5f9]"
+                      >
+                        <Shield size={15} />
+                        Role
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -511,7 +589,7 @@ export default function AdminUsersPage() {
         )}
       </Card>
 
-      {/* Pagination */}
+      {/* ── Pagination ───────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-4 rounded-[24px] border border-[#e5e7eb] bg-white px-5 py-4 shadow-[0_8px_30px_rgba(0,0,0,0.04)] sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-[#6b7280]">
           Showing{' '}
@@ -524,21 +602,179 @@ export default function AdminUsersPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="h-11 rounded-xl border-[#d1d5db] px-4">
+          <Button
+            variant="outline"
+            className="h-11 rounded-xl border-[#d1d5db] px-4"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
             <ChevronLeft size={16} />
             Previous
           </Button>
 
           <div className="rounded-xl bg-[#f8fafc] px-4 py-2 text-sm font-semibold text-[#111827]">
-            1
+            {currentPage} / {totalPages}
           </div>
 
-          <Button variant="outline" className="h-11 rounded-xl border-[#d1d5db] px-4">
+          <Button
+            variant="outline"
+            className="h-11 rounded-xl border-[#d1d5db] px-4"
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
             Next
             <ChevronRight size={16} />
           </Button>
         </div>
       </div>
+
+      {/* ── User Details Modal ───────────────────────────────────────────── */}
+      {showDetails && selectedUser && (
+        <Modal
+          isOpen={showDetails}
+          onClose={() => setShowDetails(false)}
+          title="User Details"
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                {
+                  label: 'Name',
+                  value: `${selectedUser.first_name} ${selectedUser.last_name}`,
+                },
+                { label: 'Email', value: selectedUser.email },
+                {
+                  label: 'Phone',
+                  value: selectedUser.phone_number ?? 'N/A',
+                },
+                {
+                  label: 'Balance',
+                  value: `₦${(selectedUser.balance_major ?? 0).toLocaleString()}`,
+                },
+                {
+                  label: 'Joined',
+                  value: formatDate(selectedUser.created_at ?? ''),
+                },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <p className="text-sm font-medium text-gray-600">{label}</p>
+                  <p className="mt-1 text-base font-semibold text-gray-900">
+                    {value}
+                  </p>
+                </div>
+              ))}
+
+              <div>
+                <p className="text-sm font-medium text-gray-600">Status</p>
+                <p className="mt-1">
+                  <Badge variant={getStatusVariant(selectedUser.status)}>
+                    {selectedUser.status ?? 'active'}
+                  </Badge>
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Verification
+                </p>
+                <p className="mt-1">
+                  <Badge
+                    variant={selectedUser.is_verified ? 'success' : 'warning'}
+                  >
+                    {selectedUser.is_verified ? 'Verified' : 'Unverified'}
+                  </Badge>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => setShowDetails(false)}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Assign Role Modal ────────────────────────────────────────────── */}
+      {showRoleModal && selectedUser && (
+        <Modal
+          isOpen={showRoleModal}
+          onClose={() => setShowRoleModal(false)}
+          title="Assign Role to User"
+          size="md"
+        >
+          <div className="space-y-5">
+            {/* User Info */}
+            <div className="rounded-lg bg-[#f8fafc] p-4">
+              <p className="text-xs font-semibold text-[#6b7280] uppercase tracking-wide">
+                User
+              </p>
+              <p className="mt-2 text-sm font-medium text-[#111827]">
+                {selectedUser?.first_name} {selectedUser?.last_name}
+              </p>
+              <p className="text-xs text-[#6b7280]">
+                {selectedUser?.email}
+              </p>
+            </div>
+
+            {/* Role Selection */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                Select Role
+              </label>
+              {loadingRoles ? (
+                <div className="flex items-center justify-center rounded-lg border border-[#e5e7eb] bg-[#f8fafc] py-8">
+                  <Spinner />
+                  <span className="ml-2 text-sm text-[#6b7280]">Loading roles…</span>
+                </div>
+              ) : roles.length === 0 ? (
+                <div className="rounded-lg border border-[#fcd34d] bg-[#fef3c7] p-4 text-sm text-[#92400e]">
+                  No roles available. Please contact an administrator.
+                </div>
+              ) : (
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="w-full rounded-xl border border-[#d1d5db] bg-white px-4 py-3 text-sm text-[#111827] transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+                >
+                  <option value="">Select a role…</option>
+                  {roles.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleAssignRole}
+                disabled={!selectedRole || loadingRoles}
+                className="flex-1"
+              >
+                Assign Role
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setShowRoleModal(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

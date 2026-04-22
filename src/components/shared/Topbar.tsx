@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUIStore } from '@/store/ui.store';
+import { useAuthStore } from '@/store/auth.store';
 import { RoleSwitcher } from './RoleSwitcher';
 
 interface TopbarProps {
@@ -28,6 +29,7 @@ export const Topbar: React.FC<TopbarProps> = ({
 }) => {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { activeRole } = useAuthStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -75,7 +77,8 @@ export const Topbar: React.FC<TopbarProps> = ({
     }
   };
 
-  const userRole = user?.roles?.[0] || 'customer';
+  // Use activeRole (which is now the primary role) instead of first role
+  const userRole = activeRole || user?.roles?.[0] || 'customer';
   const userInitials = user
     ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`
         .toUpperCase()

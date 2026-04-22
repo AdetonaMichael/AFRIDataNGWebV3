@@ -5,16 +5,29 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Spinner } from '@/components/shared/Spinner';
 import { Topbar } from '@/components/shared/Topbar';
-import { Menu, X } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Users,
+  CreditCard,
+  Smartphone,
+  Gift,
+  Share2,
+  Bell,
+  BarChart3,
+  FileText,
+} from 'lucide-react';
 import Link from 'next/link';
 
 const adminNavItems = [
-  { label: 'Dashboard', href: '/admin' },
-  { label: 'Users', href: '/admin/users' },
-  { label: 'Agents', href: '/admin/agents' },
-  { label: 'Transactions', href: '/admin/transactions' },
-  { label: 'Reports', href: '/admin/reports' },
-  { label: 'Analytics', href: '/admin/analytics' },
+  { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { label: 'Users', href: '/admin/users', icon: Users },
+  { label: 'Transactions', href: '/admin/transactions', icon: CreditCard },
+  { label: 'Services', href: '/admin/services', icon: Smartphone },
+  { label: 'Offer Codes', href: '/admin/offer-codes', icon: Gift },
+  { label: 'Referrals', href: '/admin/referrals', icon: Share2 },
+  { label: 'Notifications', href: '/admin/notifications', icon: Bell },
+  { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+  { label: 'Reports', href: '/admin/reports', icon: FileText },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -71,16 +84,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-            {adminNavItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className="block px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {adminNavItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition"
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
         </div>
       </div>
@@ -100,7 +117,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
+          <main className=" mx-auto px-6 py-8">{children}</main>
         </div>
       </div>
     </div>

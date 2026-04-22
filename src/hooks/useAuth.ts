@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 
 export const useAuth = () => {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, error, setUser, setAuthToken, setIsLoading, setError, logout: logoutStore } = useAuthStore();
+  const { user, isAuthenticated, isLoading, error, setUser, setAuthToken, setIsLoading, setError, getPrimaryRole, logout: logoutStore } = useAuthStore();
   const { addToast } = useUIStore();
 
   const login = useCallback(
@@ -17,27 +17,42 @@ export const useAuth = () => {
       setIsLoading(true);
       setError(null);
       try {
+        console.log('[useAuth] Login attempt for:', data.email);
         const response = await authService.login(data);
+        console.log('[useAuth] Login response:', {
+          success: response.success,
+          hasToken: !!response.data?.token,
+          tokenLength: response.data?.token?.length || 0,
+          hasUser: !!response.data?.user,
+          message: response.message,
+        });
 
         if (response.success && response.data) {
+          console.log('[useAuth] Login successful, setting user and token');
           setUser(response.data.user);
           setAuthToken(response.data.token);
+          console.log('[useAuth] Token set in auth store');
           addToast({ type: 'success', message: 'Login successful!' });
 
-          // Redirect based on role
-          const userRole = response.data.user.roles?.[0];
-          if (userRole === 'admin') {
+          // Redirect based on primary role (admin > agent > user)
+          const roles = response.data.user.roles || [];
+          const primaryRole = getPrimaryRole(roles);
+          console.log('[useAuth] Primary role determined:', primaryRole);
+          
+          if (primaryRole === 'admin') {
             router.push('/admin');
-          } else if (userRole === 'agent') {
+          } else if (primaryRole === 'agent') {
             router.push('/agent');
           } else {
             router.push('/dashboard');
           }
         } else {
+          console.warn('[useAuth] Login failed:', response.message);
           setError(response.message || 'Login failed');
           addToast({ type: 'error', message: response.message || 'Login failed' });
         }
       } catch (err: any) {
+        console.error('[useAuth] Login error:', err);
         const message = err.message || 'An error occurred during login';
         setError(message);
         addToast({ type: 'error', message });
@@ -45,7 +60,7 @@ export const useAuth = () => {
         setIsLoading(false);
       }
     },
-    [setUser, setAuthToken, setIsLoading, setError, addToast, router]
+    [setUser, setAuthToken, setIsLoading, setError, getPrimaryRole, addToast, router]
   );
 
   const register = useCallback(

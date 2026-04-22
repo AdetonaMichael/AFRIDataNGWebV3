@@ -9,7 +9,7 @@ import {
 import { safeGetItem, safeSetItem, safeRemoveItem } from '@/utils/safe-storage.utils';
 import { trackApiError } from '@/utils/error-tracking.utils';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.africadatang.com/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.afridata.remonode.com/api/v1';
 
 // Define payment operation paths that require idempotency keys
 const PAYMENT_OPERATIONS = [
@@ -84,16 +84,20 @@ class ApiClient {
           url: config.url,
           fullUrl: `${config.baseURL}${config.url}`,
           hasToken: !!token,
-          headers: config.headers,
-          data: config.data,
+          tokenPreview: token ? `${token.substring(0, 20)}...` : 'NO_TOKEN',
           timestamp: new Date().toISOString(),
         });
         
-        if (token) {
+        if (token && token.length > 0) {
           config.headers.Authorization = `Bearer ${token}`;
-          console.log('[ApiClient] Added authorization token');
+          console.log('[ApiClient] ✓ Authorization token added to request');
         } else {
-          console.warn('[ApiClient] ⚠️ No token found in localStorage');
+          console.warn('[ApiClient] ⚠️ No valid token found - request will be unauthenticated');
+          console.warn('[ApiClient] Token value:', token);
+          // Log all localStorage keys for debugging
+          if (typeof window !== 'undefined') {
+            console.warn('[ApiClient] Available localStorage keys:', Object.keys(localStorage));
+          }
         }
 
         // Add idempotency key for payment operations
