@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Tab } from '@headlessui/react';
@@ -12,6 +13,7 @@ import {
   MapPin,
   Settings2,
   ShieldCheck,
+  Trash2,
   User2,
 } from 'lucide-react';
 
@@ -32,9 +34,14 @@ function classNames(...classes: Array<string | false | null | undefined>) {
 }
 
 export default function SettingsPage() {
-  const { user, setUser } = useAuthStore();
+  const router = useRouter();
+  const { user, setUser, logout } = useAuthStore();
   const { success, error: alertError } = useAlert();
   const [loading, setLoading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteReason, setDeleteReason] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const {
     register,
@@ -84,6 +91,33 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      alertError('Password is required to delete your account');
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      const res = await userService.deleteAccount(deletePassword, deleteReason);
+
+      if (res.success) {
+        success('Account deleted successfully. Logging out...');
+        setTimeout(() => {
+          logout();
+          router.push('/');
+        }, 2000);
+      } else {
+        alertError(res.message || 'Failed to delete account');
+      }
+    } catch (err: any) {
+      alertError(err.message || 'An error occurred');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   const tabs = [
     {
       label: 'Profile',
@@ -99,6 +133,11 @@ export default function SettingsPage() {
       label: 'Notifications',
       icon: BellRing,
       subtitle: 'Control how you get updates',
+    },
+    {
+      label: 'Delete Account',
+      icon: Trash2,
+      subtitle: 'Permanently delete your account',
     },
   ];
 
@@ -213,7 +252,7 @@ export default function SettingsPage() {
         {/* Main Content */}
         <section>
           <Tab.Group>
-            <Tab.List className="grid grid-cols-1 gap-3 rounded-[28px] border border-[#e5e7eb] bg-white p-3 shadow-[0_10px_35px_rgba(0,0,0,0.04)] sm:grid-cols-3">
+            <Tab.List className="grid grid-cols-2 gap-3 rounded-[28px] border border-[#e5e7eb] bg-white p-3 shadow-[0_10px_35px_rgba(0,0,0,0.04)] sm:grid-cols-4">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
 
@@ -503,6 +542,101 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                 </Card>
+              </Tab.Panel>
+
+              {/* Delete Account */}
+              <Tab.Panel>
+                <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-8 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+                  <div className="mb-8">
+                    <h2 className="mt-4 text-2xl font-bold tracking-tight text-[#111827]">
+                      Delete Account
+                    </h2>
+                    <p className="mt-2 text-sm leading-7 text-[#6b7280]">
+                      Permanently delete your AFRIDataNG account and all associated data.
+                    </p>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="rounded-[24px] border-2 border-red-200 bg-red-50 p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="rounded-full bg-red-100 p-3">
+                          <Trash2 className="h-5 w-5 text-red-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-red-900">Danger Zone</h3>
+                          <p className="mt-1 text-sm text-red-700">
+                            This action cannot be undone. Deleting your account will:
+                          </p>
+                          <ul className="mt-3 space-y-2 text-sm text-red-700">
+                            <li>• Permanently remove all your personal data</li>
+                            <li>• Close all active sessions and tokens</li>
+                            <li>• Delete your transaction history and records</li>
+                            <li>• Remove your access to all AFRIDataNG services</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={() => setShowDeleteModal(true)}
+                      className="h-11 rounded-xl bg-red-600 px-6 text-white hover:bg-red-700"
+                    >
+                      Delete My Account
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* Delete Account Modal */}
+                {showDeleteModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-8 shadow-lg sm:w-96">
+                      <h3 className="text-xl font-bold text-[#111827]">Confirm Account Deletion</h3>
+                      <p className="mt-2 text-sm text-[#6b7280]">
+                        This action is permanent. Please enter your password to confirm.
+                      </p>
+
+                      <div className="mt-6 space-y-4">
+                        <Input
+                          label="Password"
+                          type="password"
+                          value={deletePassword}
+                          onChange={(e) => setDeletePassword(e.target.value)}
+                          placeholder="Enter your password"
+                        />
+
+                        <div>
+                          <label className="text-sm font-medium text-[#111827]">
+                            Why are you deleting your account? (Optional)
+                          </label>
+                          <textarea
+                            value={deleteReason}
+                            onChange={(e) => setDeleteReason(e.target.value)}
+                            placeholder="Your feedback helps us improve..."
+                            className="mt-2 w-full rounded-xl border border-[#d1d5db] px-4 py-3 text-sm placeholder-[#9ca3af] focus:border-[#4a5ff7] focus:outline-none"
+                            rows={3}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-8 flex gap-3">
+                        <Button
+                          onClick={() => setShowDeleteModal(false)}
+                          variant="outline"
+                          className="flex-1 rounded-xl"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleDeleteAccount}
+                          disabled={isDeleting}
+                          className="flex-1 rounded-xl bg-red-600 text-white hover:bg-red-700"
+                        >
+                          {isDeleting ? 'Deleting...' : 'Delete Account'}
+                        </Button>
+                      </div>
+                    </Card>
+                  </div>
+                )}
               </Tab.Panel>
             </Tab.Panels>
           </Tab.Group>
