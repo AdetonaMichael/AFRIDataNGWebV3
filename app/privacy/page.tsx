@@ -62,35 +62,79 @@ export default function PrivacyPage() {
           </div>
 
           <div>
+            <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">Data Safety Overview</h2>
+            <p className="leading-relaxed mb-4">
+              At AFRIDataNG, we are committed to protecting user data and maintaining the highest standards of privacy and security. This section explains how we collect, use, share, and protect your information in accordance with global data protection standards.
+            </p>
+            <h3 className="text-xl font-semibold text-[#0a0a0a] mb-2">Key Principles:</h3>
+            <ul className="list-disc list-inside space-y-2 ml-2">
+              <li><strong>Transparency:</strong> We clearly disclose what data we collect and how we use it</li>
+              <li><strong>Minimization:</strong> We only collect data that is necessary to provide our services</li>
+              <li><strong>Security:</strong> We employ industry-standard encryption and security measures</li>
+              <li><strong>Control:</strong> Users have the right to access, modify, and delete their personal data</li>
+              <li><strong>Accountability:</strong> We are responsible for how we handle all user data</li>
+            </ul>
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">Data Collection and Security</h2>
+            <p className="leading-relaxed mb-4">
+              We implement comprehensive security measures to protect your data from unauthorized access, alteration, disclosure, or destruction:
+            </p>
+            <h3 className="text-xl font-semibold text-[#0a0a0a] mb-2">Security Measures:</h3>
+            <ul className="list-disc list-inside space-y-2 ml-2">
+              <li><strong>Encryption:</strong> All data transmitted between your device and our servers is encrypted using TLS 1.2 or higher</li>
+              <li><strong>Secure Storage:</strong> Personal data is stored in encrypted databases with restricted access</li>
+              <li><strong>Access Controls:</strong> Only authorized personnel with legitimate business needs can access user data</li>
+              <li><strong>Regular Audits:</strong> We conduct regular security audits and penetration testing</li>
+              <li><strong>Incident Response:</strong> We have procedures in place to detect and respond to security incidents</li>
+              <li><strong>Data Minimization:</strong> We retain data only as long as necessary to provide services</li>
+            </ul>
+          </div>
+
+          <div>
             <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">1. Information Collection and Use</h2>
             <p className="leading-relaxed mb-4">
-              We collect several different types of information for various purposes to provide and improve our Service to you.
+              We collect several different types of information for various purposes to provide and improve our Service to you. All data collection complies with applicable privacy laws and regulations.
             </p>
             <h3 className="text-xl font-semibold text-[#0a0a0a] mb-2">Types of Data Collected:</h3>
             <ul className="list-disc list-inside space-y-2 ml-2">
-              <li><strong>Personal Data:</strong> Name, email address, phone number, postal address, date of birth, identification number</li>
-              <li><strong>Device Data:</strong> Device type, operating system, unique identifiers, IP address, browser type</li>
-              <li><strong>Usage Data:</strong> Pages visited, time spent on pages, links clicked, features used</li>
-              <li><strong>Transaction Data:</strong> Purchase history, payment method information, transaction amounts</li>
-              <li><strong>Location Data:</strong> City, state, and country information derived from IP address</li>
+              <li><strong>Personal Data:</strong> Name, email address, phone number, postal address, date of birth, identification number (collected only when you voluntarily provide it)</li>
+              <li><strong>Device Data:</strong> Device type, operating system, unique identifiers, IP address, browser type (automatically collected for service optimization)</li>
+              <li><strong>Usage Data:</strong> Pages visited, time spent on pages, links clicked, features used (collected through analytics tools)</li>
+              <li><strong>Transaction Data:</strong> Purchase history, payment method information (last 4 digits only), transaction amounts (collected to provide payment services)</li>
+              <li><strong>Location Data:</strong> City, state, and country information derived from IP address (used for localization and compliance)</li>
+              <li><strong>Communication Data:</strong> Messages sent to customer support, feedback, and survey responses (collected with explicit consent)</li>
+            </ul>
+            <h3 className="text-xl font-semibold text-[#0a0a0a] mt-4 mb-2">Data Collection Methods:</h3>
+            <ul className="list-disc list-inside space-y-2 ml-2">
+              <li><strong>Direct Collection:</strong> Information you provide when creating an account or using our services</li>
+              <li><strong>Automatic Collection:</strong> Data collected through cookies, local storage, and similar technologies</li>
+              <li><strong>Third-Party Sources:</strong> Payment processors and analytics partners (see Sharing of Data section)</li>
+              <li><strong>Ephemeral Processing:</strong> Data accessed and processed only in memory for real-time service requests</li>
             </ul>
           </div>
 
           <div>
             <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">2. Use of Data</h2>
             <p className="leading-relaxed mb-4">
-              AFRIDataNG uses the collected data for various purposes:
+              AFRIDataNG uses the collected data for specific, legitimate purposes to provide and improve our services:
             </p>
+            <h3 className="text-xl font-semibold text-[#0a0a0a] mb-2">Primary Purposes:</h3>
             <ul className="list-disc list-inside space-y-2 ml-2">
-              <li>To provide and maintain our Service</li>
-              <li>To notify you about changes to our Service</li>
-              <li>To allow you to participate in interactive features of our Service</li>
-              <li>To provide customer support</li>
-              <li>To gather analysis or valuable information to improve our Service</li>
-              <li>To monitor the usage of our Service</li>
-              <li>To detect, prevent, and address fraud and technical issues</li>
-              <li>To comply with legal obligations</li>
+              <li><strong>Service Delivery:</strong> Processing transactions, managing accounts, and providing customer support</li>
+              <li><strong>Service Improvement:</strong> Analyzing usage patterns to enhance features and user experience</li>
+              <li><strong>Communication:</strong> Sending service notifications, updates, and important account information</li>
+              <li><strong>Fraud Prevention:</strong> Monitoring for fraudulent activities and protecting against unauthorized access</li>
+              <li><strong>Legal Compliance:</strong> Meeting regulatory requirements and law enforcement requests</li>
+              <li><strong>Analytics:</strong> Understanding how users interact with our platform (aggregated and anonymized)</li>
+              <li><strong>Security:</strong> Detecting and preventing technical issues, malware, and security threats</li>
+              <li><strong>Marketing:</strong> Sending promotional materials (only with explicit opt-in consent)</li>
             </ul>
+            <h3 className="text-xl font-semibold text-[#0a0a0a] mt-4 mb-2">Data Processing Practices:</h3>
+            <p className="leading-relaxed mb-2">
+              We process data only for the purposes stated above. Users can control their data usage preferences through account settings. We do not process data beyond what is necessary to provide our services.
+            </p>
           </div>
 
           <div>
@@ -103,36 +147,65 @@ export default function PrivacyPage() {
           <div>
             <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">4. Sharing of Data</h2>
             <p className="leading-relaxed mb-4">
-              We do not sell, trade, or rent users' Personal Data to third parties. However, we may share data with:
+              We do not sell, trade, or rent users' Personal Data to third parties. However, we may share data with trusted partners who assist us in operating our platform and services:
             </p>
+            <h3 className="text-xl font-semibold text-[#0a0a0a] mb-2">Authorized Data Sharing:</h3>
             <ul className="list-disc list-inside space-y-2 ml-2">
-              <li>Service providers who assist us in operating our website and conducting our business</li>
-              <li>Law enforcement agencies when required by law</li>
-              <li>Financial institutions for payment processing</li>
-              <li>Analytics providers to understand how you use our Service</li>
+              <li><strong>Service Providers:</strong> Payment processors, cloud hosting providers, and customer support platforms (data shared as necessary to provide services)</li>
+              <li><strong>Financial Institutions:</strong> Banks and payment gateways for transaction processing (encrypted payment data only)</li>
+              <li><strong>Analytics Providers:</strong> Third-party analytics services to understand platform usage (anonymized and aggregated data only)</li>
+              <li><strong>Law Enforcement:</strong> Government agencies when required by law or valid legal process (with appropriate legal documentation)</li>
+              <li><strong>Business Partners:</strong> Affiliated services and partners (with explicit user consent)</li>
+            </ul>
+            <h3 className="text-xl font-semibold text-[#0a0a0a] mt-4 mb-2">Data Sharing Restrictions:</h3>
+            <ul className="list-disc list-inside space-y-2 ml-2">
+              <li>All third-party partners are bound by confidentiality agreements</li>
+              <li>Partners must comply with applicable privacy laws and regulations</li>
+              <li>Data shared with third parties is limited to what is necessary for providing services</li>
+              <li>We do not allow third parties to use your data for their own marketing purposes</li>
+              <li>Users can request information about specific data sharing at any time</li>
             </ul>
           </div>
 
           <div>
-            <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">5. Cookies</h2>
-            <p className="leading-relaxed">
-              We use cookies and similar tracking technologies to track activity on our Service and hold certain information. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent. However, if you do not accept cookies, you may not be able to use some portions of our Service.
-            </p>
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">6. Your Rights</h2>
+            <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">5. Tracking Technologies and Cookies</h2>
             <p className="leading-relaxed mb-4">
-              Depending on your location, you may have certain rights regarding your Personal Data:
+              We use cookies and similar tracking technologies to enhance your experience and understand how you use our Service. These technologies help us remember your preferences, improve functionality, and protect against fraud.
             </p>
+            <h3 className="text-xl font-semibold text-[#0a0a0a] mb-2">Types of Tracking Technology:</h3>
             <ul className="list-disc list-inside space-y-2 ml-2">
-              <li>The right to access your Personal Data</li>
-              <li>The right to correct inaccurate data</li>
-              <li>The right to request deletion of your data</li>
-              <li>The right to restrict processing of your data</li>
-              <li>The right to data portability</li>
-              <li>The right to withdraw consent</li>
+              <li><strong>Essential Cookies:</strong> Required for authentication and service functionality</li>
+              <li><strong>Performance Cookies:</strong> Help us understand usage patterns and optimize performance</li>
+              <li><strong>Preference Cookies:</strong> Remember your settings and personalization choices</li>
+              <li><strong>Advertising Cookies:</strong> Used only with explicit consent to deliver relevant content</li>
+              <li><strong>Analytics Tracking:</strong> Google Analytics and similar services (anonymized data)</li>
             </ul>
+            <h3 className="text-xl font-semibold text-[#0a0a0a] mt-4 mb-2">User Control:</h3>
+            <p className="leading-relaxed mb-2">
+              You can control cookies through your browser settings. Most browsers allow you to refuse cookies or alert you when cookies are being sent. However, blocking all cookies may affect your ability to use certain features of our Service. You can also opt out of analytics tracking in your account settings.
+            </p>
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">6. Your Rights and Data Subject Requests</h2>
+            <p className="leading-relaxed mb-4">
+              Depending on your location and applicable laws, you may have certain rights regarding your Personal Data. We are committed to respecting these rights:
+            </p>
+            <h3 className="text-xl font-semibold text-[#0a0a0a] mb-2">Your Data Rights:</h3>
+            <ul className="list-disc list-inside space-y-2 ml-2">
+              <li><strong>Right to Access:</strong> You can request a copy of all personal data we hold about you</li>
+              <li><strong>Right to Rectification:</strong> You can correct inaccurate or incomplete information</li>
+              <li><strong>Right to Erasure:</strong> You can request deletion of your data (subject to legal obligations)</li>
+              <li><strong>Right to Restrict Processing:</strong> You can limit how we use your data</li>
+              <li><strong>Right to Data Portability:</strong> You can request your data in a machine-readable format</li>
+              <li><strong>Right to Withdraw Consent:</strong> You can withdraw consent for data processing at any time</li>
+              <li><strong>Right to Object:</strong> You can object to certain types of data processing</li>
+              <li><strong>Right to Lodge a Complaint:</strong> You can file a complaint with your local data protection authority</li>
+            </ul>
+            <h3 className="text-xl font-semibold text-[#0a0a0a] mt-4 mb-2">How to Exercise Your Rights:</h3>
+            <p className="leading-relaxed mb-2">
+              To exercise any of these rights, please contact us at adeyemijolaade1@gmail.com with a clear description of your request. We will respond within 30 days (or as required by law). You can also manage many of your preferences directly in your account settings.
+            </p>
           </div>
 
           <div>
@@ -143,16 +216,81 @@ export default function PrivacyPage() {
           </div>
 
           <div>
-            <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">8. Changes to This Privacy Policy</h2>
+            <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">7. Children's Privacy</h2>
+            <p className="leading-relaxed mb-4">
+              AFRIDataNG is not intended for users under the age of 18. We take children's privacy very seriously and comply with all applicable child protection laws.
+            </p>
+            <h3 className="text-xl font-semibold text-[#0a0a0a] mb-2">Our Commitment:</h3>
+            <ul className="list-disc list-inside space-y-2 ml-2">
+              <li>We do not knowingly collect Personal Data from children under 18</li>
+              <li>Our Service is not designed for or directed to children under 18</li>
+              <li>If we become aware that we have collected data from a minor, we immediately delete such information</li>
+              <li>We do not use children's data for marketing purposes</li>
+              <li>If a parent or guardian believes we have collected data from their child, they can contact us immediately</li>
+            </ul>
+            <p className="leading-relaxed mt-4">
+              If you believe we have collected data from a child, please contact us at adeyemijolaade1@gmail.com.
+            </p>
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">8. Data Retention</h2>
+            <p className="leading-relaxed mb-4">
+              We retain personal data only for as long as necessary to provide our services and fulfill the purposes stated in this Privacy Policy.
+            </p>
+            <h3 className="text-xl font-semibold text-[#0a0a0a] mb-2">Retention Periods:</h3>
+            <ul className="list-disc list-inside space-y-2 ml-2">
+              <li><strong>Account Data:</strong> Retained while your account is active, or for 2 years after account closure if necessary for compliance</li>
+              <li><strong>Transaction Data:</strong> Retained for 7 years to comply with financial regulations</li>
+              <li><strong>Analytics Data:</strong> Retained for up to 26 months; older data is automatically deleted</li>
+              <li><strong>Support Data:</strong> Retained for 1 year after resolution of your request</li>
+              <li><strong>Marketing Data:</strong> Retained only while consent is active</li>
+            </ul>
+            <p className="leading-relaxed mt-2">
+              You can request deletion of your data at any time through your account settings or by contacting us.
+            </p>
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">9. International Data Transfers</h2>
+            <p className="leading-relaxed mb-4">
+              AFRIDataNG operates globally and may transfer your personal data to countries other than where you are located. When we transfer data internationally, we implement appropriate safeguards to protect your information:
+            </p>
+            <ul className="list-disc list-inside space-y-2 ml-2">
+              <li>Standard contractual clauses approved by relevant authorities</li>
+              <li>Privacy Shield frameworks or equivalent mechanisms</li>
+              <li>Data protection impact assessments for high-risk transfers</li>
+              <li>Encryption during transmission across borders</li>
+            </ul>
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">10. Changes to This Privacy Policy</h2>
             <p className="leading-relaxed">
               We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date at the top of this Privacy Policy.
             </p>
           </div>
 
           <div>
-            <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">9. Contact Us</h2>
+            <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">10. Changes to This Privacy Policy</h2>
             <p className="leading-relaxed">
-              If you have any questions about this Privacy Policy, please contact us at adeyemijolaade1@gmail.com or visit our <Link href="/contact" className="text-[#aab9f8] hover:underline">Contact page</Link>.
+              We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date at the top of this Privacy Policy. If changes are significant, we may provide additional notice or require your consent.
+            </p>
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-bold text-[#0a0a0a] mb-4">11. Contact & Data Protection Officer</h2>
+            <p className="leading-relaxed mb-4">
+              If you have any questions about this Privacy Policy, our data handling practices, or wish to exercise your data rights, please contact us:
+            </p>
+            <div className="bg-gray-50 p-4 rounded-lg mb-4">
+              <p className="text-[#0a0a0a] font-semibold mb-2">AFRIDataNG Data Protection Team</p>
+              <p className="text-[#555]">Email: <a href="mailto:adeyemijolaade1@gmail.com" className="text-[#aab9f8] hover:underline">adeyemijolaade1@gmail.com</a></p>
+              <p className="text-[#555] mt-2">Please include "Data Request" in your subject line for faster processing</p>
+              <p className="text-[#555] mt-2">We aim to respond to all inquiries within 30 days</p>
+            </div>
+            <p className="leading-relaxed">
+              You can also visit our <Link href="/contact" className="text-[#aab9f8] hover:underline">Contact page</Link> to submit a request through our contact form.
             </p>
           </div>
 
