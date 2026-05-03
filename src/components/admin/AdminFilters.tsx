@@ -57,13 +57,13 @@ export const AdminFilters: React.FC<AdminFiltersProps> = ({
 
   return (
     <Card className="mb-6">
-      <CardBody className="space-y-4">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
+      <CardBody className="space-y-3 sm:space-y-4">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filters.map((filter) => {
             if (filter.type === 'select') {
               return (
                 <div key={filter.key}>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                  <label className="mb-2 block text-xs sm:text-sm font-medium text-gray-700">
                     {filter.label}
                   </label>
                   <Select
@@ -83,7 +83,7 @@ export const AdminFilters: React.FC<AdminFiltersProps> = ({
             if (filter.type === 'date') {
               return (
                 <div key={filter.key}>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                  <label className="mb-2 block text-xs sm:text-sm font-medium text-gray-700">
                     {filter.label}
                   </label>
                   <Input
@@ -99,7 +99,7 @@ export const AdminFilters: React.FC<AdminFiltersProps> = ({
 
             return (
               <div key={filter.key}>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
+                <label className="mb-2 block text-xs sm:text-sm font-medium text-gray-700">
                   {filter.label}
                 </label>
                 <div className="relative">
@@ -111,7 +111,7 @@ export const AdminFilters: React.FC<AdminFiltersProps> = ({
                     onChange={(e) =>
                       handleChange(filter.key, e.target.value)
                     }
-                    className="pl-10"
+                    className="pl-10 text-sm"
                   />
                 </div>
               </div>
@@ -119,12 +119,13 @@ export const AdminFilters: React.FC<AdminFiltersProps> = ({
           })}
         </div>
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
           <Button
             variant="primary"
             size="md"
             onClick={handleApply}
             disabled={loading}
+            className="w-full sm:w-auto"
           >
             Apply Filters
           </Button>
@@ -133,6 +134,7 @@ export const AdminFilters: React.FC<AdminFiltersProps> = ({
             size="md"
             onClick={handleReset}
             disabled={loading}
+            className="w-full sm:w-auto"
           >
             <RotateCcw className="h-4 w-4" />
             Reset

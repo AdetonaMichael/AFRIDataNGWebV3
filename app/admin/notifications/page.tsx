@@ -92,12 +92,17 @@ export default function AdminNotificationsPage() {
       const fetchUsers = async () => {
         try {
           setLoadingUsers(true);
-          const response = await adminService.getUsers(1, 1000); // Fetch up to 1000 users
-          if (response?.data?.data) {
-            setUsers(response.data.data);
+          const response = await adminService.getUsers(1, 100); // Fetch up to 100 users (API limit)
+          if (response?.data) {
+            const userData = Array.isArray(response.data)
+              ? response.data
+              : response.data.data ?? [];
+            console.log('Fetched users:', userData);
+            setUsers(userData);
           }
         } catch (error) {
           console.error('Error fetching users:', error);
+          setUsers([]);
         } finally {
           setLoadingUsers(false);
         }

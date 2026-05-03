@@ -8,6 +8,13 @@ import {
   GenerateReportRequest,
   ApiResponse,
   PaginatedResponse,
+  AirtimeConversion,
+  AirtimeConversionFilters,
+  UpdateAirtimeConversionStatusRequest,
+  FundAirtimeConversionWalletRequest,
+  AddAirtimeConversionCommentRequest,
+  BulkUpdateAirtimeConversionStatusRequest,
+  AirtimeConversionAnalytics,
 } from '@/types/api.types';
 
 class AdminService {
@@ -389,6 +396,122 @@ class AdminService {
 
   async getAnalytics(metric: string, period: string): Promise<any> {
     return apiClient.get(`/admin/analytics?metric=${metric}&period=${period}`);
+  }
+
+  // ============= AIRTIME CONVERSION ENDPOINTS =============
+
+  /**
+   * Get paginated list of airtime conversions with filters
+   */
+  async getAirtimeConversions(
+    filters: AirtimeConversionFilters = {}
+  ): Promise<ApiResponse<PaginatedResponse<AirtimeConversion>>> {
+    const params = new URLSearchParams();
+    
+    if (filters.page) params.append('page', String(filters.page));
+    if (filters.per_page) params.append('per_page', String(filters.per_page));
+    if (filters.status) params.append('status', filters.status);
+    if (filters.network) params.append('network', filters.network);
+    if (filters.date_from) params.append('date_from', filters.date_from);
+    if (filters.date_to) params.append('date_to', filters.date_to);
+    if (filters.amount_min) params.append('amount_min', String(filters.amount_min));
+    if (filters.amount_max) params.append('amount_max', String(filters.amount_max));
+    if (filters.search) params.append('search', filters.search);
+    if (filters.sort_by) params.append('sort_by', filters.sort_by);
+    if (filters.sort_order) params.append('sort_order', filters.sort_order);
+
+    return apiClient.get(`/admin/airtime-conversions?${params.toString()}`);
+  }
+
+  /**
+   * Get details of a specific airtime conversion request
+   */
+  async getAirtimeConversion(
+    conversionId: number
+  ): Promise<ApiResponse<AirtimeConversion>> {
+    return apiClient.get(`/admin/airtime-conversions/${conversionId}`);
+  }
+
+  /**
+   * Update status of airtime conversion (confirm, reject, etc.)
+   */
+  async updateAirtimeConversionStatus(
+    conversionId: number,
+    data: UpdateAirtimeConversionStatusRequest
+  ): Promise<ApiResponse<any>> {
+    return apiClient.put(`/admin/airtime-conversions/${conversionId}/status`, data);
+  }
+
+  /**
+   * Fund user wallet for approved airtime conversion
+   */
+  async fundAirtimeConversionWallet(
+    conversionId: number,
+    data: FundAirtimeConversionWalletRequest = {}
+  ): Promise<ApiResponse<any>> {
+    return apiClient.post(`/admin/airtime-conversions/${conversionId}/fund-wallet`, data);
+  }
+
+  /**
+   * Add comment/note to airtime conversion
+   */
+  async addAirtimeConversionComment(
+    conversionId: number,
+    data: AddAirtimeConversionCommentRequest
+  ): Promise<ApiResponse<any>> {
+    return apiClient.post(`/admin/airtime-conversions/${conversionId}/comments`, data);
+  }
+
+  /**
+   * Bulk update status of multiple airtime conversions
+   */
+  async bulkUpdateAirtimeConversionStatus(
+    data: BulkUpdateAirtimeConversionStatusRequest
+  ): Promise<ApiResponse<any>> {
+    return apiClient.post('/admin/airtime-conversions/bulk/update-status', data);
+  }
+
+  /**
+   * Get analytics and insights for airtime conversions
+   */
+  async getAirtimeConversionAnalytics(
+    period: 'today' | 'week' | 'month' | 'year' = 'month',
+    dateFrom?: string,
+    dateTo?: string,
+    network?: string
+  ): Promise<ApiResponse<{ data: AirtimeConversionAnalytics }>> {
+    const params = new URLSearchParams();
+    params.append('period', period);
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    if (network) params.append('network', network);
+
+    return apiClient.get(`/admin/airtime-conversions/analytics/summary?${params.toString()}`);
+  }
+
+  /**
+   * Export airtime conversions to CSV or Excel
+   */
+  async exportAirtimeConversions(
+    format: 'csv' | 'excel' = 'csv',
+    filters?: Partial<AirtimeConversionFilters>
+  ): Promise<any> {
+    return apiClient.post('/admin/airtime-conversions/export', {
+      format,
+      filters,
+    });
+  }
+
+  /**
+   * Retry funding for failed airtime conversion
+   */
+  async retryAirtimeConversionFunding(
+    conversionId: number,
+    notes?: string
+  ): Promise<ApiResponse<any>> {
+    return apiClient.put(`/admin/airtime-conversions/${conversionId}/retry-funding`, {
+      notes,
+    });
   }
 }
 

@@ -2,7 +2,8 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { CURRENCY_SYMBOL } from './constants';
 
 // Currency formatting
-export const formatCurrency = (amount: number, currency: string = 'NGN'): string => {
+export const formatCurrency = (amount: number | undefined | null, currency: string = 'NGN'): string => {
+  if (amount === undefined || amount === null) return 'N/A';
   const symbol = CURRENCY_SYMBOL[currency] || currency;
   return `${symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };

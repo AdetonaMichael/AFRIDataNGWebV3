@@ -211,9 +211,13 @@ export default function AdminReferralsPage() {
                       Commission:
                     </span>
                     <span className="font-semibold text-gray-900">
-                      {program.commission_type === 'percentage'
-                        ? `${program.commission_rate}%`
-                        : formatCurrency(program.commission_rate)}
+                      {program.commission_rate ? (
+                        program.commission_type === 'percentage'
+                          ? `${program.commission_rate}%`
+                          : formatCurrency(program.commission_rate)
+                      ) : (
+                        'N/A'
+                      )}
                     </span>
                   </div>
                   <div className="mt-2">

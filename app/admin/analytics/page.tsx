@@ -156,25 +156,6 @@ export default function AdminAnalyticsPage() {
         }
       `}</style>
 
-      {/* ── Hero Section ──────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden rounded-[30px] border border-[#e5e7eb] bg-[#0b1220] px-6 py-8 sm:px-8 sm:py-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(74,95,247,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.06),transparent_24%)]" />
-
-        <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#c7d2fe]">
-              Admin Intelligence
-            </span>
-            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              Analytics Dashboard
-            </h1>
-            <p className="mt-3 max-w-xl text-sm leading-7 text-[#cbd5e1] sm:text-base">
-              Real-time platform performance metrics: wallet balances, VTU transactions,
-              user growth, and network performance.
-            </p>
-          </div>
-        </div>
-      </section>
 
       {/* ── Wallet Stats Section ──────────────────────────────────────────── */}
       {walletStats && (

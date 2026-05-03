@@ -30,7 +30,7 @@ export const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={clsx('border-b border-gray-200 px-6 py-4', className)}
+      className={clsx('border-b border-gray-200 px-4 py-3 sm:px-6 sm:py-4', className)}
       {...props}
     />
   )
@@ -46,7 +46,7 @@ export const CardBody = React.forwardRef<HTMLDivElement, CardBodyProps>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={clsx('px-6 py-4', className)}
+      className={clsx('px-4 py-3 sm:px-6 sm:py-4', className)}
       {...props}
     />
   )
@@ -62,7 +62,7 @@ export const CardFooter = React.forwardRef<HTMLDivElement, CardFooterProps>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={clsx('border-t border-gray-200 px-6 py-4', className)}
+      className={clsx('border-t border-gray-200 px-4 py-3 sm:px-6 sm:py-4', className)}
       {...props}
     />
   )

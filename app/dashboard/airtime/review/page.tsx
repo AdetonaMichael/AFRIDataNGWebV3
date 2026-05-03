@@ -67,8 +67,9 @@ export default function AirtimeReviewPage() {
   }, [router]);
 
   const amount = useMemo(() => Number(formData?.amount || 0), [formData]);
-  const convenienceFee = useMemo(() => Math.ceil(amount * 0.015), [amount]);
-  const totalAmount = amount + convenienceFee;
+  // const convenienceFee = useMemo(() => Math.ceil(amount * 0.015), [amount]);
+  const convenienceFee = 0;
+  const totalAmount = amount;
 
   const handleBack = () => {
     router.push('/dashboard/airtime');

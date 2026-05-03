@@ -259,7 +259,7 @@ export default function AdminUsersPage() {
 
 
       {/* ── Summary cards ────────────────────────────────────────────────── */}
-      <section className="flex gap-5 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 md:overflow-x-visible xl:grid-cols-4">
+      <section className="flex gap-3 sm:gap-5 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 md:overflow-x-visible xl:grid-cols-4">
         {[
           {
             title: 'All Users',
@@ -288,18 +288,18 @@ export default function AdminUsersPage() {
         ].map(({ title, value, note, Icon }) => (
           <Card
             key={title}
-            className="min-w-full snap-start rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] md:min-w-0"
+            className="min-w-[250px] snap-start rounded-[24px] border border-[#e5e7eb] bg-white p-4 sm:p-5 md:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] md:min-w-0"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-[#6b7280]">{title}</p>
-                <p className="mt-3 text-3xl font-extrabold tracking-tight text-[#111827]">
+            <div className="flex items-start justify-between gap-3 sm:gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-[#6b7280]">{title}</p>
+                <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight text-[#111827]">
                   {value}
                 </p>
-                <p className="mt-2 text-sm text-[#6b7280]">{note}</p>
+                <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-[#6b7280]">{note}</p>
               </div>
-              <div className="rounded-2xl bg-[#eef2ff] p-3">
-                <Icon className="h-5 w-5 text-[#4a5ff7]" />
+              <div className="rounded-2xl bg-[#eef2ff] p-2 sm:p-3 flex-shrink-0">
+                <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-[#4a5ff7]" />
               </div>
             </div>
           </Card>
@@ -307,18 +307,18 @@ export default function AdminUsersPage() {
       </section>
 
       {/* ── Filters ──────────────────────────────────────────────────────── */}
-      <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-5 shadow-[0_10px_35px_rgba(0,0,0,0.04)] sm:p-6">
-        <div className="mb-5">
-          <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
+      <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-4 shadow-[0_10px_35px_rgba(0,0,0,0.04)] sm:p-5 md:p-6">
+        <div className="mb-4 sm:mb-5">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#111827]">
             Filters
           </h2>
-          <p className="mt-1 text-sm text-[#6b7280]">
+          <p className="mt-1 text-xs sm:text-sm text-[#6b7280]">
             Search by name, email, or phone and narrow results by account
             status.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_220px_220px]">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-[1fr_220px_220px]">
           {/* Search */}
           <div className="relative">
             <Search

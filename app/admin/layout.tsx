@@ -15,6 +15,7 @@ import {
   Bell,
   BarChart3,
   FileText,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -22,6 +23,7 @@ const adminNavItems = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Transactions', href: '/admin/transactions', icon: CreditCard },
+  { label: 'Airtime Conversions', href: '/admin/airtime-conversions', icon: Zap },
   { label: 'Services', href: '/admin/services', icon: Smartphone },
   { label: 'Offer Codes', href: '/admin/offer-codes', icon: Gift },
   { label: 'Referrals', href: '/admin/referrals', icon: Share2 },
@@ -117,7 +119,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          <main className=" mx-auto px-6 py-8">{children}</main>
+          <main className="mx-auto px-4 py-4 sm:px-6 sm:py-6 md:px-8 md:py-8 max-w-7xl">{children}</main>
         </div>
       </div>
     </div>

@@ -48,17 +48,17 @@ export const AdminStats: React.FC<AdminStatsProps> = ({ stats }) => {
   };
 
   return (
-    <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="mb-6 grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {stats.map((stat, index) => (
         <Card key={index}>
           <CardBody className="space-y-2">
-            <div className="flex items-start justify-between">
-              <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 flex-1">{stat.title}</p>
               {stat.icon && (
-                <div className="text-[#a9b7ff]">{stat.icon}</div>
+                <div className="text-[#a9b7ff] flex-shrink-0">{stat.icon}</div>
               )}
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900">{stat.value}</p>
             {stat.change && (
               <div
                 className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${getTrendColor(

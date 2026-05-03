@@ -390,28 +390,28 @@ export default function AdminDashboardPage() {
 
         {/* ── KPI Cards (Horizontally Scrollable) ────────────────────────── */}
         <section>
-          <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-x-visible lg:grid-cols-4">
+          <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-x-visible lg:grid-cols-4">
             {kpiCards.map((kpi) => {
               const Icon = kpi.icon;
               return (
                 <Card
                   key={kpi.label}
-                  className="min-w-full snap-start rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] md:min-w-0"
+                  className="min-w-[280px] snap-start rounded-[24px] border border-[#e5e7eb] bg-white p-4 sm:p-5 md:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] md:min-w-0"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-[#6b7280]">
+                  <div className="flex items-start justify-between gap-3 sm:gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-[#6b7280]">
                         {kpi.label}
                       </p>
-                      <p className="mt-3 text-2xl font-bold text-[#111827]">
+                      <p className="mt-2 sm:mt-3 text-xl sm:text-2xl font-bold text-[#111827]">
                         {kpi.value}
                       </p>
-                      <p className="mt-2 text-xs text-[#6b7280]">
+                      <p className="mt-1 sm:mt-2 text-xs text-[#6b7280]">
                         {kpi.subtext}
                       </p>
                     </div>
-                    <div className={`rounded-2xl ${kpi.color} p-3`}>
-                      <Icon className="h-5 w-5" />
+                    <div className={`rounded-2xl ${kpi.color} p-2 sm:p-3 flex-shrink-0`}>
+                      <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
                   </div>
                 </Card>
@@ -421,15 +421,15 @@ export default function AdminDashboardPage() {
         </section>
 
         {/* ── Charts Grid ────────────────────────────────────────────────── */}
-        <section className="grid gap-6 md:grid-cols-2">
+        <section className="grid gap-4 sm:gap-6 md:grid-cols-2">
           {/* Service Distribution */}
-          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="rounded-2xl bg-[#eef2ff] p-3">
-                <BarChart3 className="h-5 w-5 text-[#4a5ff7]" />
+          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-4 sm:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-4 sm:mb-6 flex items-start gap-3 sm:gap-3">
+              <div className="rounded-2xl bg-[#eef2ff] p-2 sm:p-3 flex-shrink-0">
+                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-[#4a5ff7]" />
               </div>
-              <div>
-                <h3 className="font-semibold text-[#111827]">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm sm:text-base font-semibold text-[#111827]">
                   Service Distribution
                 </h3>
                 <p className="text-xs text-[#6b7280]">
@@ -438,15 +438,15 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {data.services.service_distribution && data.services.service_distribution.length > 0 ? (
                 data.services.service_distribution.map((service) => (
                   <div key={service.type}>
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-sm font-medium text-[#111827]">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="text-xs sm:text-sm font-medium text-[#111827] truncate">
                         {service.type.replace(/_/g, ' ').toUpperCase()}
                       </span>
-                      <span className="text-sm font-bold text-[#4a5ff7]">
+                      <span className="text-xs sm:text-sm font-bold text-[#4a5ff7] flex-shrink-0">
                         {service.percentage.toFixed(1)}%
                       </span>
                     </div>
@@ -459,19 +459,19 @@ export default function AdminDashboardPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-[#6b7280]">No service distribution data available</p>
+                <p className="text-xs sm:text-sm text-[#6b7280]">No service distribution data available</p>
               )}
             </div>
           </Card>
 
           {/* Network Performance */}
-          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="rounded-2xl bg-[#eef2ff] p-3">
-                <Network className="h-5 w-5 text-[#4a5ff7]" />
+          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-4 sm:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-4 sm:mb-6 flex items-start gap-3">
+              <div className="rounded-2xl bg-[#eef2ff] p-2 sm:p-3 flex-shrink-0">
+                <Network className="h-4 w-4 sm:h-5 sm:w-5 text-[#4a5ff7]" />
               </div>
-              <div>
-                <h3 className="font-semibold text-[#111827]">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm sm:text-base font-semibold text-[#111827]">
                   Network Performance
                 </h3>
                 <p className="text-xs text-[#6b7280]">
@@ -480,15 +480,15 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {data.services.vtu_by_network && data.services.vtu_by_network.length > 0 ? (
                 data.services.vtu_by_network.map((network) => (
                   <div
                     key={network.network}
-                    className="flex items-center justify-between border-b border-[#f1f5f9] pb-4 last:border-b-0"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-[#f1f5f9] pb-3 sm:pb-4 last:border-b-0 gap-2 sm:gap-3"
                   >
-                    <div>
-                      <p className="font-semibold text-[#111827]">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-[#111827]">
                         {network.network}
                       </p>
                       <p className="text-xs text-[#6b7280]">
@@ -496,7 +496,7 @@ export default function AdminDashboardPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-[#111827]">
+                      <p className="text-sm font-bold text-[#111827]">
                         {formatCompactCurrency(network.volume)}
                       </p>
                       <p className="text-xs text-[#6b7280]">

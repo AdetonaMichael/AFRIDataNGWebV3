@@ -498,6 +498,191 @@ export interface AgentDashboard {
   }>;
 }
 
+// ============= Airtime to Cash Conversion Types =============
+export type AirtimeConversionStatus = 'pending' | 'confirmed' | 'processing' | 'completed' | 'rejected' | 'failed';
+export type AirtimeNetwork = 'MTN' | 'Airtel' | '9mobile' | 'Glo';
+
+export interface AirtimeConversionStatusHistory {
+  id: number;
+  status: AirtimeConversionStatus;
+  changed_at: string;
+  changed_by: number | null;
+  changed_by_admin?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  notes: string | null;
+}
+
+export interface AirtimeConversionComment {
+  id: number;
+  admin_id: number;
+  admin: {
+    name: string;
+    email: string;
+  };
+  comment: string;
+  visibility: 'internal' | 'user';
+  created_at: string;
+}
+
+export interface AirtimeConversionUser {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  phone_verified_at?: string;
+  email_verified_at?: string;
+  account_balance?: number;
+  wallet_balance?: number;
+  created_at?: string;
+  last_login?: string;
+  referral_code?: string;
+}
+
+export interface AirtimeConversion {
+  id: number;
+  user_id: number;
+  user: AirtimeConversionUser;
+  network: AirtimeNetwork;
+  phone: string;
+  amount: number | string;
+  discounted_amount: number | string;
+  commission: number | string;
+  commission_percentage?: number;
+  receipt_number: string;
+  service_logo?: string;
+  transaction_id: string;
+  status: AirtimeConversionStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  confirmed_at?: string;
+  confirmed_by?: number;
+  confirmed_by_admin?: any;
+  funded_at?: string;
+  funded_by?: number;
+  funded_by_admin?: any;
+  rejected_at?: string;
+  rejected_by?: number;
+  rejected_by_admin?: any;
+  rejection_reason?: string;
+  rejection_notes?: string;
+  retry_count?: number | string;
+  last_error_message?: string | null;
+  status_histories?: AirtimeConversionStatusHistory[];
+  comments?: AirtimeConversionComment[];
+  central_transaction?: {
+    id: number;
+    user_id: number;
+    transaction_type: string;
+    amount: number;
+    status: string;
+    reference: string;
+    transaction_date: string;
+    metadata?: Record<string, any>;
+  };
+  deleted_at?: string | null;
+  transaction_type?: string;
+}
+
+export interface AirtimeConversionFilters {
+  page?: number;
+  per_page?: number;
+  status?: AirtimeConversionStatus;
+  network?: AirtimeNetwork;
+  date_from?: string;
+  date_to?: string;
+  amount_min?: number;
+  amount_max?: number;
+  search?: string;
+  sort_by?: 'date' | 'amount';
+  sort_order?: 'asc' | 'desc';
+}
+
+export interface UpdateAirtimeConversionStatusRequest {
+  status: Exclude<AirtimeConversionStatus, 'pending'>;
+  notes?: string;
+  reason_for_rejection?: string;
+}
+
+export interface FundAirtimeConversionWalletRequest {
+  authorization_notes?: string;
+}
+
+export interface AddAirtimeConversionCommentRequest {
+  comment: string;
+  visibility?: 'internal' | 'user';
+}
+
+export interface BulkUpdateAirtimeConversionStatusRequest {
+  conversion_ids: number[];
+  status: Exclude<AirtimeConversionStatus, 'pending'>;
+  notes?: string;
+  reason_for_rejection?: string;
+}
+
+export interface AirtimeConversionAnalytics {
+  period: string;
+  summary: {
+    total_requests: number;
+    pending: number;
+    confirmed: number;
+    processing: number;
+    completed: number;
+    rejected: number;
+    failed: number;
+  };
+  financial: {
+    total_original_amount: number;
+    total_discounted_amount: number;
+    total_commission: number;
+    average_commission_percentage: number;
+    total_funded: number;
+  };
+  performance: {
+    approval_rate: number;
+    rejection_rate: number;
+    average_processing_time_hours: number;
+    fastest_processing_minutes: number;
+    slowest_processing_hours: number;
+  };
+  by_network: Record<AirtimeNetwork, {
+    count: number;
+    amount: number;
+    status?: string;
+    percentage: number;
+  }>;
+  trends: {
+    daily?: Array<{
+      date: string;
+      requests: number;
+      amount: number;
+      completed: number;
+    }>;
+    hourly_peak?: string;
+  };
+  top_users?: Array<{
+    user_id: number;
+    name: string;
+    request_count: number;
+    total_amount: number;
+  }>;
+}
+
+export interface WalletTransactionRecord {
+  id: number;
+  user_id: number;
+  type: 'credit' | 'debit' | 'refund';
+  amount: number;
+  description: string;
+  related_transaction_id: number;
+  related_transaction_type: string;
+  created_at: string;
+}
+
 export interface Customer {
   id: string;
   name: string;
