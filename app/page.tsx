@@ -628,44 +628,36 @@ export default function Home() {
               </p>
             </div>
 
-            {[
-              {
-                title: 'Services',
-                links: [
-                  'Buy Airtime',
-                  'Buy Data',
-                  'Electricity',
-                  'TV Subscription',
-                  'Airtime to Cash',
-                ],
-              },
-              {
-                title: 'Company',
-                links: ['About', 'Blog', 'Careers', 'Contact'],
-              },
-              {
-                title: 'Legal',
-                links: ['Terms of Service', 'Privacy Policy', 'Security', 'Refund Policy'],
-              },
-            ].map((column) => (
-              <div key={column.title}>
-                <div className="mb-4 text-xs font-bold uppercase tracking-widest text-[#0a0a0a]">
-                  {column.title}
-                </div>
-                <ul className="flex list-none flex-col gap-2.5 p-0">
-                  {column.links.map((link) => (
-                    <li key={link}>
-                      <a
-                        href="#"
-                        className="text-sm font-medium text-[#888] no-underline transition-colors hover:text-[#0a0a0a]"
-                      >
-                        {link}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+            <div>
+              <div className="mb-4 text-xs font-bold uppercase tracking-widest text-[#0a0a0a]">
+                Company
               </div>
-            ))}
+              <ul className="flex list-none flex-col gap-2.5 p-0">
+                <li><Link href="/about" className="text-sm font-medium text-[#888] no-underline transition-colors hover:text-[#0a0a0a]">About</Link></li>
+                {/* <li><Link href="/careers" className="text-sm font-medium text-[#888] no-underline transition-colors hover:text-[#0a0a0a]">Careers</Link></li> */}
+                <li><Link href="/contact" className="text-sm font-medium text-[#888] no-underline transition-colors hover:text-[#0a0a0a]">Contact</Link></li>
+              </ul>
+            </div>
+            <div>
+              <div className="mb-4 text-xs font-bold uppercase tracking-widest text-[#0a0a0a]">
+                Legal
+              </div>
+              <ul className="flex list-none flex-col gap-2.5 p-0">
+                <li><Link href="/legal" className="text-sm font-medium text-[#888] no-underline transition-colors hover:text-[#0a0a0a]">Legal Center</Link></li>
+                <li><Link href="/terms" className="text-sm font-medium text-[#888] no-underline transition-colors hover:text-[#0a0a0a]">Terms of Service</Link></li>
+                <li><Link href="/privacy" className="text-sm font-medium text-[#888] no-underline transition-colors hover:text-[#0a0a0a]">Privacy Policy</Link></li>
+              </ul>
+            </div>
+            <div>
+              <div className="mb-4 text-xs font-bold uppercase tracking-widest text-[#0a0a0a]">
+                Support
+              </div>
+              <ul className="flex list-none flex-col gap-2.5 p-0">
+                <li><Link href="/security" className="text-sm font-medium text-[#888] no-underline transition-colors hover:text-[#0a0a0a]">Security</Link></li>
+                <li><Link href="/refund" className="text-sm font-medium text-[#888] no-underline transition-colors hover:text-[#0a0a0a]">Refund Policy</Link></li>
+                <li><a href="mailto:adeyemijolaade1@gmail.com" className="text-sm font-medium text-[#888] no-underline transition-colors hover:text-[#0a0a0a]">Support</a></li>
+              </ul>
+            </div>
           </div>
 
           <div className="flex flex-col items-center justify-between gap-3 border-t border-gray-100 pt-6 sm:flex-row">

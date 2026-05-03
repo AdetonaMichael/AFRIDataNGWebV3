@@ -120,7 +120,7 @@ export default function RootLayout({
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "Customer Support",
-      email: "support@afridatawebv3.com",
+      email: "adeyemijolaade1@gmail.com",
       availableLanguage: ["en"],
     },
   };
