@@ -124,13 +124,11 @@ export default function AdminUsersPage() {
       });
 
       if (response?.data) {
-        const userData = Array.isArray(response.data)
-          ? response.data
-          : response.data.data ?? [];
+        const userData = Array.isArray(response.data.data)
+          ? response.data.data
+          : [];
         setUsers(userData);
-        if (response.data.pagination) {
-          setTotalPages(response.data.pagination.last_page ?? 1);
-        }
+        setTotalPages(response.data.last_page ?? 1);
       }
     } catch (error) {
       console.error('Error fetching users:', error);

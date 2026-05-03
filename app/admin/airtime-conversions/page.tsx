@@ -84,15 +84,15 @@ export default function AirtimeConversionsPage() {
       console.log('[AirtimeConversions] full response:', response);
       console.log('[AirtimeConversions] response.data:', response.data);
 
-      // API shape: response.data = { data: [...], pagination: { current_page, total, last_page, ... } }
+      // API returns standard Laravel pagination format
       const paginatedData = response.data;
 
       if (paginatedData && Array.isArray(paginatedData.data)) {
         setConversions(paginatedData.data);
         setPagination((prev) => ({
           ...prev,
-          total:    paginatedData.pagination.total    ?? 0,
-          lastPage: paginatedData.pagination.last_page ?? 1,
+          total:    paginatedData.total    ?? 0,
+          lastPage: paginatedData.last_page ?? 1,
         }));
       } else {
         console.warn('[AirtimeConversions] Unexpected response shape:', paginatedData);
