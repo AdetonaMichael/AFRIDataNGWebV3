@@ -36,6 +36,8 @@ interface AdminUser {
   email: string;
   phone_number?: string;
   is_verified?: boolean;
+  email_verified_at?: string | null;
+  is_active?: string | number | boolean;
   balance_major?: number;
   status?: UserStatus;
   created_at?: string;
@@ -93,6 +95,7 @@ export default function AdminUsersPage() {
   const [totalPages, setTotalPages] = useState(1);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | UserStatus>('all');
 
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -117,21 +120,47 @@ export default function AdminUsersPage() {
   const fetchUsers = async (page = 1) => {
     try {
       setLoading(true);
-      const response = await adminService.getUsers(page, 50, {
+      const response = await adminService.getUsers(page, 10, {
         search: searchTerm,
         status: statusFilter === 'all' ? '' : statusFilter,
         verified: '',
       });
 
-      if (response?.data) {
-        const userData = Array.isArray(response.data.data)
-          ? response.data.data
-          : [];
-        setUsers(userData);
-        setTotalPages(response.data.last_page ?? 1);
+      console.log('[AdminUsers] Users response:', response);
+
+      let userData: AdminUser[] = [];
+      let pagination: { last_page?: number } | undefined;
+
+      if (Array.isArray(response.data)) {
+        userData = response.data;
+      } else if (Array.isArray(response.data?.data)) {
+        userData = response.data.data;
+        pagination = response.data;
       }
+
+      if (!pagination && (response as any).pagination) {
+        pagination = (response as any).pagination;
+      }
+
+      userData = userData.map((u) => ({
+        ...u,
+        status:
+          u.status ||
+          (u.is_active === '1' || u.is_active === 1 || u.is_active === true
+            ? 'active'
+            : 'inactive'),
+        is_verified:
+          typeof u.is_verified === 'boolean'
+            ? u.is_verified
+            : !!u.email_verified_at,
+      }));
+
+      setUsers(userData);
+      setTotalPages(pagination?.last_page ?? 1);
     } catch (error) {
       console.error('Error fetching users:', error);
+      setUsers([]);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
@@ -164,10 +193,19 @@ export default function AdminUsersPage() {
   };
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1);
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
     fetchUsers(currentPage);
     if (roles.length === 0) fetchRoles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, searchTerm, statusFilter]);
+  }, [currentPage, debouncedSearchTerm, statusFilter]);
 
   // ── Actions ─────────────────────────────────────────────────────────────────
 
@@ -215,9 +253,7 @@ export default function AdminUsersPage() {
   }, [users, searchTerm, statusFilter]);
 
   const summary = useMemo(() => {
-    const active = users.filter(
-      (u) => u.status === 'active' || !u.status
-    ).length;
+    const active = users.filter((u) => u.status === 'active').length;
     const suspended = users.filter((u) => u.status === 'suspended').length;
     const inactive = users.filter((u) => u.status === 'inactive').length;
     return { total: users.length, active, suspended, inactive };
@@ -327,9 +363,11 @@ export default function AdminUsersPage() {
               label="Search"
               placeholder="Search by name, email, or phone…"
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                }
               }}
               className="pl-11"
             />
@@ -481,10 +519,7 @@ export default function AdminUsersPage() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => {
-                              setSelectedUser(u);
-                              setShowDetails(true);
-                            }}
+                            onClick={() => router.push(`/admin/users/${u.id}`)}
                             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#4a5ff7] transition hover:bg-[#eef2ff]"
                           >
                             <Eye size={15} />
@@ -562,10 +597,7 @@ export default function AdminUsersPage() {
                     </div>
                     <div className="flex items-end justify-end gap-2">
                       <button
-                        onClick={() => {
-                          setSelectedUser(u);
-                          setShowDetails(true);
-                        }}
+                        onClick={() => router.push(`/admin/users/${u.id}`)}
                         className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#4a5ff7] transition hover:bg-[#eef2ff]"
                       >
                         <Eye size={15} />

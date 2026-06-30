@@ -41,6 +41,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, fullWidth, isLoading, disabled, children, ...props }, ref) => {
     return (
       <button
+        type={props.type ?? 'button'}
         className={clsx(buttonVariants({ variant, size, fullWidth }), className)}
         disabled={disabled || isLoading}
         ref={ref}

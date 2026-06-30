@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { User, AuthResponse } from '@/types/api.types';
 import { safeGetItem, safeSetItem, safeRemoveItem } from '@/utils/safe-storage.utils';
+import { clearAuthTokens } from '@/utils/token.utils';
 
 interface PINStatus {
   has_pin: boolean;
@@ -17,6 +18,7 @@ interface AuthStore {
   error: string | null;
   pinStatus: PINStatus | null;
   activeRole: string | null;
+  sessionExpired: boolean;
   
   setUser: (user: User | null) => void;
   setAuthToken: (token: string) => void;
@@ -24,8 +26,10 @@ interface AuthStore {
   setError: (error: string | null) => void;
   setPinStatus: (status: PINStatus | null) => void;
   setActiveRole: (role: string) => void;
+  setSessionExpired: (expired: boolean) => void;
   getPrimaryRole: (roles?: string[]) => string | null;
   logout: () => void;
+  handleSessionExpired: () => void;
   reset: () => void;
 }
 
@@ -72,6 +76,7 @@ export const useAuthStore = create<AuthStore>()(
       error: null,
       pinStatus: null,
       activeRole: null,
+      sessionExpired: false,
 
       setUser: (user) => {
         // Determine primary role for activeRole
@@ -92,6 +97,7 @@ export const useAuthStore = create<AuthStore>()(
           error: null,
           // Set activeRole to primary role (admin > agent > customer/user)
           activeRole: primaryRole,
+          sessionExpired: false,
         });
       },
 
@@ -109,6 +115,8 @@ export const useAuthStore = create<AuthStore>()(
 
       setActiveRole: (role) => set({ activeRole: role }),
 
+      setSessionExpired: (expired) => set({ sessionExpired: expired }),
+
       getPrimaryRole: (roles?: string[]) => {
         const rolesToCheck = roles || [];
         // Order of priority: admin > agent > customer/user
@@ -117,11 +125,13 @@ export const useAuthStore = create<AuthStore>()(
         return rolesToCheck.find((r) => r === 'customer' || r === 'user') || rolesToCheck[0] || null;
       },
 
+      /**
+       * Standard logout - clears auth state
+       */
       logout: () => {
+        console.log('[AuthStore] Logging out user...');
         if (typeof window !== 'undefined') {
-          safeRemoveItem('token');
-          // Clear all auth-related localStorage keys
-          safeRemoveItem('auth-store');
+          clearAuthTokens();
         }
         set({
           user: null,
@@ -129,6 +139,26 @@ export const useAuthStore = create<AuthStore>()(
           error: null,
           pinStatus: null,
           activeRole: null,
+          sessionExpired: false,
+        });
+      },
+
+      /**
+       * Handle session expiration - marks session as expired and clears auth
+       * This triggers special UI handling for expired sessions
+       */
+      handleSessionExpired: () => {
+        console.log('[AuthStore] Session expired - clearing auth state');
+        if (typeof window !== 'undefined') {
+          clearAuthTokens();
+        }
+        set({
+          user: null,
+          isAuthenticated: false,
+          error: 'Session expired. Please login again.',
+          pinStatus: null,
+          activeRole: null,
+          sessionExpired: true,
         });
       },
 
@@ -140,6 +170,7 @@ export const useAuthStore = create<AuthStore>()(
           error: null,
           pinStatus: null,
           activeRole: null,
+          sessionExpired: false,
         });
       },
     }),
@@ -151,6 +182,7 @@ export const useAuthStore = create<AuthStore>()(
         isAuthenticated: state.isAuthenticated,
         pinStatus: state.pinStatus,
         activeRole: state.activeRole,
+        sessionExpired: state.sessionExpired,
       }),
     }
   )

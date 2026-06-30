@@ -1,9 +1,13 @@
 import { clearAllIdempotencyKeys } from '@/utils/idempotency.utils';
-import { apiClient } from '@/services/api-client';
+import { clearAuthTokens } from '@/utils/token.utils';
 
 /**
  * Handle user logout with cleanup
- * Clears all session data and idempotency keys
+ * 
+ * This is a utility function for programmatic logout (SSR/SSG context)
+ * For client-side logout, use useAuth hook or useAuthStore directly
+ * 
+ * Clears all session data, tokens, and idempotency keys
  */
 export const handleLogout = async (): Promise<void> => {
   try {
@@ -12,33 +16,45 @@ export const handleLogout = async (): Promise<void> => {
     // Clear all stored idempotency keys on logout
     clearAllIdempotencyKeys();
 
-    // Clear auth tokens via api client
-    apiClient.logout();
-
-    // Clear all session storage
-    try {
-      sessionStorage.clear();
-    } catch (error) {
-      console.warn('[Logout] Failed to clear sessionStorage:', error);
-    }
-
-    // Clear local storage auth tokens
-    const tokensToRemove = ['token', 'user', 'auth'];
-    tokensToRemove.forEach((token) => {
-      try {
-        localStorage.removeItem(token);
-      } catch (error) {
-        console.warn(`[Logout] Failed to remove ${token}:`, error);
-      }
-    });
+    // Clear all auth tokens and data
+    clearAuthTokens();
 
     console.log('[Logout] All session data cleared');
 
     // Redirect to login
-    window.location.href = '/auth/login';
+    if (typeof window !== 'undefined') {
+      window.location.href = '/auth/login';
+    }
   } catch (error) {
     console.error('[Logout] Logout failed:', error);
     // Force logout even if there's an error
-    window.location.href = '/auth/login';
+    if (typeof window !== 'undefined') {
+      window.location.href = '/auth/login';
+    }
   }
 };
+
+/**
+ * Handle logout with custom redirect
+ * @param redirectUrl - Where to redirect after logout (default: /auth/login)
+ */
+export const handleLogoutWithRedirect = async (redirectUrl: string = '/auth/login'): Promise<void> => {
+  try {
+    console.log('[Logout] Initiating logout with redirect to:', redirectUrl);
+
+    clearAllIdempotencyKeys();
+    clearAuthTokens();
+
+    console.log('[Logout] All session data cleared, redirecting...');
+
+    if (typeof window !== 'undefined') {
+      window.location.href = redirectUrl;
+    }
+  } catch (error) {
+    console.error('[Logout] Logout failed:', error);
+    if (typeof window !== 'undefined') {
+      window.location.href = redirectUrl;
+    }
+  }
+};
+

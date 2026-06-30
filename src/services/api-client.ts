@@ -7,6 +7,7 @@ import {
   clearIdempotencyKey,
 } from '@/utils/idempotency.utils';
 import { safeGetItem, safeSetItem, safeRemoveItem } from '@/utils/safe-storage.utils';
+import { hasValidToken, clearAuthTokens, isTokenLikelyExpired } from '@/utils/token.utils';
 import { trackApiError } from '@/utils/error-tracking.utils';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.afridata.remonode.com/api/v1';
@@ -205,22 +206,49 @@ class ApiClient {
         
         const config = error.config as ExtendedAxiosRequestConfig;
 
-        // Retry logic for network errors
-        if (error.response?.status !== 401 && config && config.retry! < this.maxRetries) {
+        // Handle 401 - Session expired or invalid token
+        if (error.response?.status === 401) {
+          console.error('[ApiClient] 401 Unauthorized - Session expired or invalid token');
+          console.error('[ApiClient] Token status:', {
+            hasToken: hasValidToken(),
+            isExpired: isTokenLikelyExpired(),
+          });
+
+          // Clear tokens immediately to prevent further attempts
+          clearAuthTokens();
+
+          // Try to trigger proper logout via Zustand store if available
+          try {
+            // Dynamically import to avoid circular dependencies
+            const { useAuthStore } = require('@/store/auth.store');
+            const handleSessionExpired = useAuthStore.getState?.()?.handleSessionExpired;
+            if (handleSessionExpired && typeof handleSessionExpired === 'function') {
+              console.log('[ApiClient] Triggering store session expiration handler');
+              handleSessionExpired();
+            }
+          } catch (storeError) {
+            console.warn('[ApiClient] Could not access Zustand store for logout:', storeError);
+          }
+
+          // Redirect to login page with proper history
+          if (typeof window !== 'undefined') {
+            // Use replace to prevent going back to protected page
+            window.location.replace('/auth/login?session_expired=true');
+          }
+
+          return Promise.reject({
+            ...error,
+            message: 'Session expired. Please login again.',
+            isSessionExpired: true,
+          });
+        }
+
+        // Retry logic for network errors (but not 401)
+        if (config && config.retry! < this.maxRetries) {
           config.retry = (config.retry || 0) + 1;
           console.log(`[ApiClient] Retrying request (attempt ${config.retry}/${this.maxRetries})`);
           await this.delay(this.retryDelay * config.retry);
           return this.axiosInstance(config);
-        }
-
-        // Handle 401 - Redirect to login
-        if (error.response?.status === 401) {
-          console.log('[ApiClient] Got 401 - session expired, redirecting to login');
-          if (typeof window !== 'undefined') {
-            this.clearToken();
-            window.location.href = '/auth/login';
-          }
-          return Promise.reject('Session expired - please login again');
         }
 
         console.error('[ApiClient] Request failed - no retry', error);

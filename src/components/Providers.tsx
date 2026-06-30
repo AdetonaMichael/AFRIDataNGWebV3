@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { Toast } from '@/components/shared/Toast';
 import { AuthInitializer } from '@/components/AuthInitializer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { SessionExpiredHandler } from '@/components/SessionExpiredHandler';
 import { initializeDebugLogging } from '@/utils/debug.utils';
 import { initializeErrorTracking } from '@/utils/error-tracking.utils';
 
@@ -25,10 +26,12 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
   return (
     <ErrorBoundary>
       <AuthInitializer>
-        <>
-          {children}
-          <Toast />
-        </>
+        <SessionExpiredHandler>
+          <>
+            {children}
+            <Toast />
+          </>
+        </SessionExpiredHandler>
       </AuthInitializer>
     </ErrorBoundary>
   );

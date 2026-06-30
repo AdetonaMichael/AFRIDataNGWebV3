@@ -19,19 +19,65 @@ export const useAuth = () => {
       try {
         console.log('[useAuth] Login attempt for:', data.email);
         const response = await authService.login(data);
+        
+        // Log the complete response for debugging
+        console.log('[useAuth] Full response object:', JSON.stringify(response, null, 2));
+        console.log('[useAuth] Response.data keys:', Object.keys(response.data || {}));
+        console.log('[useAuth] Response.data.token:', response.data?.token);
+        console.log('[useAuth] Response.data.token type:', typeof response.data?.token);
+        console.log('[useAuth] Response.data.accessToken:', response.data?.accessToken);
+        
         console.log('[useAuth] Login response:', {
           success: response.success,
           hasToken: !!response.data?.token,
           tokenLength: response.data?.token?.length || 0,
+          hasAccessToken: !!response.data?.accessToken,
+          accessTokenLength: response.data?.accessToken?.length || 0,
           hasUser: !!response.data?.user,
           message: response.message,
         });
 
         if (response.success && response.data) {
-          console.log('[useAuth] Login successful, setting user and token');
+          // Determine which token field to use
+          let tokenToUse: string | undefined;
+          
+          // Check token field first
+          if (response.data.token && response.data.token.length > 0) {
+            tokenToUse = response.data.token;
+            console.log('[useAuth] Using "token" field from response');
+          }
+          
+          // Fall back to accessToken if token is not available or too short
+          if (!tokenToUse && response.data.accessToken) {
+            tokenToUse = response.data.accessToken;
+            console.log('[useAuth] Using "accessToken" field from response');
+          }
+          
+          // Check for other possible token field names
+          if (!tokenToUse) {
+            const data = response.data as any;
+            const possibleFields = ['jwt', 'jwtToken', 'auth_token', 'authorization'];
+            for (const field of possibleFields) {
+              if (data[field]) {
+                tokenToUse = data[field];
+                console.log(`[useAuth] Using "${field}" field from response`);
+                break;
+              }
+            }
+          }
+          
+          if (!tokenToUse) {
+            console.error('[useAuth] No authentication token found in response');
+            console.error('[useAuth] Available fields in response.data:', Object.keys(response.data));
+            setError('No authentication token received from server');
+            addToast({ type: 'error', message: 'Authentication failed: No token received' });
+            return;
+          }
+          
+          console.log('[useAuth] Login successful, setting user and token', { tokenLength: tokenToUse.length });
           setUser(response.data.user);
-          setAuthToken(response.data.token);
-          console.log('[useAuth] Token set in auth store');
+          setAuthToken(tokenToUse);
+          console.log('[useAuth] Token set in auth store', { tokenLength: tokenToUse.length });
           addToast({ type: 'success', message: 'Login successful!' });
 
           // Redirect based on primary role (admin > agent > user)
@@ -119,12 +165,27 @@ export const useAuth = () => {
   const logout = useCallback(async () => {
     setIsLoading(true);
     try {
-      await authService.logout();
+      console.log('[useAuth] Logging out...');
+      
+      // Try to call logout API (optional - may fail if session is already invalid)
+      try {
+        await authService.logout();
+      } catch (apiError: any) {
+        console.warn('[useAuth] API logout failed (may be expected if session expired):', apiError.message);
+        // Continue with local logout even if API call fails
+      }
+
+      // Clear auth store - this clears all tokens and auth state
       logoutStore();
+      
       addToast({ type: 'success', message: 'Logged out successfully' });
-      router.push('/');
+      router.push('/auth/login');
     } catch (err: any) {
-      addToast({ type: 'error', message: 'Logout failed' });
+      console.error('[useAuth] Logout error:', err);
+      addToast({ type: 'error', message: 'Logout failed - please try again' });
+      // Still clear local state even if error
+      logoutStore();
+      router.push('/auth/login');
     } finally {
       setIsLoading(false);
     }

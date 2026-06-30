@@ -33,14 +33,12 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { activeRole } = useAuthStore();
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [shouldRender, setShouldRender] = useState(false);
 
   // Role protection: Redirect if user has higher privilege roles
   useEffect(() => {
-    if (!user) {
-      setLoading(true);
-      return;
-    }
+    // Only process after mount to avoid hydration mismatch
+    if (!user) return;
 
     // Check if user has higher privilege roles
     const hasAdminRole = user.roles?.includes('admin');
@@ -50,20 +48,24 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     if (activeRole) {
       // Respect explicit role selection
       if (activeRole === 'admin' && hasAdminRole) {
+        console.log('[DashboardLayout] Redirecting to admin dashboard');
         router.push('/admin');
         return;
       } else if (activeRole === 'agent' && hasAgentRole) {
+        console.log('[DashboardLayout] Redirecting to agent dashboard');
         router.push('/agent');
         return;
       }
     } else if (hasAdminRole || hasAgentRole) {
       // If no explicit role selected but user has higher privilege, redirect
       const redirectPath = hasAdminRole ? '/admin' : '/agent';
+      console.log('[DashboardLayout] Redirecting to', redirectPath);
       router.push(redirectPath);
       return;
     }
 
-    setLoading(false);
+    // User is regular customer - can render dashboard
+    setShouldRender(true);
   }, [user, activeRole, router]);
 
   const navItems = [
@@ -79,11 +81,14 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const isActive = (href: string) => pathname === href;
 
-  if (loading) {
+  // Wait for role check to complete before rendering
+  if (!shouldRender) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spinner />
-      </div>
+      <AuthProtected requireAuth={true}>
+        <div className="flex items-center justify-center min-h-screen">
+          <Spinner />
+        </div>
+      </AuthProtected>
     );
   }
 

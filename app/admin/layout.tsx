@@ -36,17 +36,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, activeRole } = useAuthStore();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [canRender, setCanRender] = useState(false);
 
   useEffect(() => {
     // Check if user is admin
     if (!user) {
+      console.log('[AdminLayout] No user, redirecting to login');
       router.push('/auth/login');
       return;
     }
 
     const isAdmin = user.roles?.some((r) => r === 'admin');
     if (!isAdmin) {
+      console.log('[AdminLayout] User is not admin, redirecting to dashboard');
       router.push('/dashboard');
       return;
     }
@@ -54,14 +56,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // If user has multiple roles but activeRole is not admin, redirect to appropriate dashboard
     if (activeRole && activeRole !== 'admin') {
       const path = activeRole === 'agent' ? '/agent' : '/dashboard';
+      console.log('[AdminLayout] Redirecting to', path);
       router.push(path);
       return;
     }
 
-    setLoading(false);
+    console.log('[AdminLayout] User is admin, can render');
+    setCanRender(true);
   }, [user, activeRole, router]);
 
-  if (loading) {
+  if (!canRender) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Spinner />
@@ -119,7 +123,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          <main className="mx-auto px-4 py-4 sm:px-6 sm:py-6 md:px-8 md:py-8 max-w-7xl">{children}</main>
+          <main className="mx-auto px-4 py-4 sm:px-6 sm:py-6 md:px-8 md:py-8 ">{children}</main>
         </div>
       </div>
     </div>

@@ -37,7 +37,7 @@ class AdminService {
     return apiClient.get(`/admin/users?${params.toString()}`);
   }
 
-  async getUser(userId: string): Promise<ApiResponse<{ user: AdminUser }>> {
+  async getUser(userId: string): Promise<ApiResponse<AdminUser>> {
     return apiClient.get(`/admin/users/${userId}`);
   }
 

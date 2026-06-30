@@ -20,17 +20,19 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
   const { user, activeRole } = useAuthStore();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [canRender, setCanRender] = useState(false);
 
   useEffect(() => {
     // Check if user is agent
     if (!user) {
+      console.log('[AgentLayout] No user, redirecting to login');
       router.push('/auth/login');
       return;
     }
 
     const isAgent = user.roles?.some((r) => r === 'agent');
     if (!isAgent) {
+      console.log('[AgentLayout] User is not agent, redirecting to dashboard');
       router.push('/dashboard');
       return;
     }
@@ -38,14 +40,16 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
     // If user has multiple roles but activeRole is not agent, redirect to appropriate dashboard
     if (activeRole && activeRole !== 'agent') {
       const path = activeRole === 'admin' ? '/admin' : '/dashboard';
+      console.log('[AgentLayout] Redirecting to', path);
       router.push(path);
       return;
     }
 
-    setLoading(false);
+    console.log('[AgentLayout] User is agent, can render');
+    setCanRender(true);
   }, [user, activeRole, router]);
 
-  if (loading) {
+  if (!canRender) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Spinner />

@@ -71,7 +71,8 @@ export interface Role {
 }
 
 export interface AuthResponse {
-  token: string;
+  token?: string;  // Made optional in case backend uses accessToken
+  accessToken?: string;  // Some backends use this instead of token
   user: User;
   login_channel: string;
   pin_status?: {
@@ -446,6 +447,7 @@ export interface AdminDashboard {
 export interface AdminUser extends User {
   status: 'active' | 'inactive' | 'suspended';
   is_verified: boolean;
+  is_active?: string | number | boolean;
   last_login?: string | null;
 }
 
